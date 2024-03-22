@@ -2,10 +2,9 @@ version: '3'
 services:
   web:
     build: .
-    volumes:
-      - '.:/app'
-      - '/app/node_modules'
     ports:
-      - '3005:3005'
+      - '3006:3006'
     environment:
       - CHOKIDAR_USEPOLLING=true
+volumes:
+  node_modules:
