@@ -32,14 +32,14 @@ class SDKClient:
         if not collection:
             self.collection = "_default"
 
-        self.collection_connetion = self.bucket_connection.scope(scope).collection(collection)
+        self.collection_connection = self.bucket_connection.scope(self.scope).collection(self.collection)
 
     def upsert(self, key, doc):
-        res = self.collection_connetion.upsert(key, doc, UpsertOptions(timeout=timedelta(seconds=60)))
+        res = self.collection_connection.upsert(key, doc, UpsertOptions(timeout=timedelta(seconds=60)))
         return res.success
 
     def get(self, key):
-        result = self.collection_connetion.get(key, GetOptions(timeout=timedelta(seconds=60)))
+        result = self.collection_connection.get(key, GetOptions(timeout=timedelta(seconds=60)))
         return result.content_as[str]
 
     def query(self, query):
@@ -47,5 +47,5 @@ class SDKClient:
         return query_result.rows()
 
     def delete_doc(self, key):
-        res = self.collection_connetion.remove(key, RemoveOptions(timeout=timedelta(seconds=60)))
+        res = self.collection_connection.remove(key, RemoveOptions(timeout=timedelta(seconds=60)))
         return res.success
