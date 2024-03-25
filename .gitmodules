@@ -1,0 +1,3 @@
+[submodule "util/ssh_util"]
+	path = util/ssh_util
+	url = https://github.com/couchbaselabs/ssh_util.git
