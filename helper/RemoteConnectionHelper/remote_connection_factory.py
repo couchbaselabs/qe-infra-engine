@@ -58,6 +58,7 @@ class RemoteConnectionObjectFactory:
             if RemoteConnectionObjectFactory._objs[ipaddr] is not None:
                 del RemoteConnectionObjectFactory._objs[ipaddr]
         RemoteConnectionObjectFactory._objs.pop(ipaddr, None)
+        # TODO - Implement in submodule
         # RemoteMachineShellConnection.delete_info_for_server(None, ipaddr)
 
 
