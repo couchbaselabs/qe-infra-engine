@@ -87,8 +87,6 @@ class RemoteXenServerHelper(XenServerHelper):
             local_file_path = os.path.join(local_dir_path, f"{output_file_path.split('/')[-1]}")
             
             res = self.shell.copy_file_remote_to_local(output_file_path, local_file_path)
-            # TODO - Implement boolean result in submodule
-            res = True
             if res:
                 self.logger.info(f"Successfuly copied file {output_file_path} from remote to local {local_file_path}")
             else:
@@ -156,8 +154,6 @@ class RemoteXenServerHelper(XenServerHelper):
             local_file_path = os.path.join(local_dir_path, f"{output_file_path.split('/')[-1]}")
             
             res = self.shell.copy_file_remote_to_local(output_file_path, local_file_path)
-            # TODO - Implement boolean result in submodule
-            res = True
             if res:
                 self.logger.info(f"Successfuly copied file {output_file_path} from remote to local {local_file_path}")
             else:
@@ -224,8 +220,6 @@ class RemoteXenServerHelper(XenServerHelper):
             local_file_path = os.path.join(local_dir_path, f"{output_file_path.split('/')[-1]}")
             
             res = self.shell.copy_file_remote_to_local(output_file_path, local_file_path)
-            # TODO - Implement boolean result in submodule
-            res = True
             if res:
                 self.logger.info(f"Successfuly copied file {output_file_path} from remote to local {local_file_path}")
             else:
