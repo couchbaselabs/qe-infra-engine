@@ -3,9 +3,13 @@ import os
 
 # Adding project path into the sys paths for scanning all the modules
 script_dir = os.path.dirname(os.path.realpath(__file__))
-project_path = os.path.join(script_dir, "..", "..")
-if project_path not in sys.path:
-    sys.path.append(project_path)
+project_paths = [
+    os.path.join(script_dir, "..", ".."),
+    os.path.join(script_dir, "..", "..", "util", "ssh_util")
+]
+for project_path in project_paths:
+    if project_path not in sys.path:
+        sys.path.append(project_path)
 
 import logging.config
 import argparse
@@ -171,7 +175,7 @@ def main():
         node["count"] = i
         i+=1
 
-    results = add_nodes_parallel(node_data, max_workers=20)
+    results = add_nodes_parallel(node_data)
 
     current_time = datetime.datetime.now()
     timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')

@@ -1,11 +1,14 @@
 import sys
 import os
 
-# Adding project path into the sys paths for scanning all the modules
 script_dir = os.path.dirname(os.path.realpath(__file__))
-project_path = os.path.join(script_dir, "..", "..")
-if project_path not in sys.path:
-    sys.path.append(project_path)
+project_paths = [
+    os.path.join(script_dir, "..", ".."),
+    os.path.join(script_dir, "..", "..", "util", "ssh_util")
+]
+for project_path in project_paths:
+    if project_path not in sys.path:
+        sys.path.append(project_path)
 
 import logging.config
 import argparse
