@@ -15,7 +15,7 @@ import concurrent
 import datetime
 import json
 from helper.SDKHelper.testdb_helper.server_pool_helper import ServerPoolSDKHelper
-from helper.RemoteConnectionHelper.remote_connection_factory import RemoteConnectionObjectFactory
+from util.ssh_util.node_infra_helper.remote_connection_factory import RemoteConnectionObjectFactory
 
 logger = logging.getLogger("tasks")
 
