@@ -1,6 +1,5 @@
 from helper.XenServerHelper.xen_server_helper import XenServerHelper
-from util.ssh_util.shell_util.remote_connection import RemoteMachineShellConnection
-from util.ssh_util.install_util.test_input import TestInputServer
+from util.ssh_util.node_infra_helper.remote_connection_factory import RemoteConnectionObjectFactory
 import os
 import datetime
 import json
@@ -27,20 +26,24 @@ class RemoteXenServerHelper(XenServerHelper):
                     super().__init__()
                     self.logger = logging.getLogger("helper")
 
-                    server = TestInputServer()
-                    server.ip = os.environ.get("XEN_SERVER_IP")
-                    server.ssh_username = os.environ.get("XEN_SERVER_USERNAME")
-                    server.ssh_password = os.environ.get("XEN_SERVER_PASSWORD")
+                    ipaddr = os.environ.get("XEN_SERVER_IP")
+                    ssh_username = os.environ.get("XEN_SERVER_USERNAME")
+                    ssh_password = os.environ.get("XEN_SERVER_PASSWORD")
 
-                    self.shell = RemoteMachineShellConnection(server)
+                    self.remote_helper = RemoteConnectionObjectFactory.fetch_helper(ipaddr=ipaddr,
+                                                                                    ssh_username=ssh_username,
+                                                                                    ssh_password=ssh_password)
                     self.logger.info("A remote shell connection was successfully established to XenServer")
                     self._initialized.set()
 
     def add_host(self, label, host, username, password):
         with self._lock:
-            command = f"xo-cli server.add label={label} host={host} username={username} password={password} allowUnauthorized=true"
+            command = self.ADD_HOST_COMMAND(label=label,
+                                            host=host,
+                                            username=username,
+                                            password=password)
             self.logger.info(f"Executing command on XenServer : {command}")
-            output, error = self.shell.execute_command(command)
+            output, error = self.remote_helper.execute_command(command)
         if len(error) != 0:
             msg = f"Command {' '.join(command)} failed with error {error}"
             self.logger.error(msg)
@@ -51,9 +54,9 @@ class RemoteXenServerHelper(XenServerHelper):
     def remove_host(self, label, host):
         server_info = self.get_server_status(label, host)
         with self._lock:
-            command = f"xo-cli server.remove id={server_info['id']}"
+            command = self.REMOVE_HOST_COMMAND(server_info['id'])
             self.logger.info(f"Executing command on XenServer : {command}")
-            output, error = self.shell.execute_command(command)
+            output, error = self.remote_helper.execute_command(command)
         if len(error) > 0:
             msg = f"Command {' '.join(command)} failed with error {error}"
             self.logger.error(msg)
@@ -66,11 +69,11 @@ class RemoteXenServerHelper(XenServerHelper):
             current_time = datetime.datetime.now()
             timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
             output_file_path = f"/tmp/server_info_{timestamp_string}.json"
-            command = f"xo-cli server.getAll --json > {output_file_path}" 
+            command = f'{self.GET_SERVERS_STATUS_COMMAND()} > {output_file_path}'
             self.logger.info(f"Running command {command}")
-            _, error = self.shell.execute_command(command)
+            _, error = self.remote_helper.execute_command(command)
             if len(error) > 0:
-                self.shell.execute_command(f"rm {output_file_path}")
+                self.remote_helper.execute_command(f"rm {output_file_path}")
                 msg = f"Command {' '.join(command)} failed with error {error}"
                 self.logger.error(msg)
                 raise Exception(msg)
@@ -85,8 +88,8 @@ class RemoteXenServerHelper(XenServerHelper):
                     raise e
 
             local_file_path = os.path.join(local_dir_path, f"{output_file_path.split('/')[-1]}")
-            
-            res = self.shell.copy_file_remote_to_local(output_file_path, local_file_path)
+
+            res = self.remote_helper.copy_file_remote_to_local(output_file_path, local_file_path)
             if res:
                 self.logger.info(f"Successfuly copied file {output_file_path} from remote to local {local_file_path}")
             else:
@@ -94,7 +97,7 @@ class RemoteXenServerHelper(XenServerHelper):
                 self.logger.error(msg)
                 raise Exception(msg)
 
-            self.shell.execute_command(f"rm {output_file_path}")
+            self.remote_helper.execute_command(f"rm {output_file_path}")
 
         server_info = {}
         with open(local_file_path) as json_file:
@@ -132,12 +135,12 @@ class RemoteXenServerHelper(XenServerHelper):
             current_time = datetime.datetime.now()
             timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
             output_file_path = f"/tmp/list_vms_{timestamp_string}.json"
-            command = f"xo-cli --list-objects type=VM > {output_file_path}"
+            command = f'{self.FETCH_LIST_VMS_COMMAND()} > {output_file_path}'
             self.logger.info(f"Running command {command}")
-            
-            _, error = self.shell.execute_command(command)
+
+            _, error = self.remote_helper.execute_command(command)
             if len(error) > 0:
-                self.shell.execute_command(f"rm {output_file_path}")
+                self.remote_helper.execute_command(f"rm {output_file_path}")
                 msg = f"Command {' '.join(command)} failed with error {error}"
                 self.logger.error(msg)
                 raise Exception(msg)
@@ -152,8 +155,8 @@ class RemoteXenServerHelper(XenServerHelper):
                     raise e
 
             local_file_path = os.path.join(local_dir_path, f"{output_file_path.split('/')[-1]}")
-            
-            res = self.shell.copy_file_remote_to_local(output_file_path, local_file_path)
+
+            res = self.remote_helper.copy_file_remote_to_local(output_file_path, local_file_path)
             if res:
                 self.logger.info(f"Successfuly copied file {output_file_path} from remote to local {local_file_path}")
             else:
@@ -161,7 +164,7 @@ class RemoteXenServerHelper(XenServerHelper):
                 self.logger.error(msg)
                 raise Exception(msg)
 
-            self.shell.execute_command(f"rm {output_file_path}")
+            self.remote_helper.execute_command(f"rm {output_file_path}")
 
         list_vms = {}
         with open(local_file_path) as json_file:
@@ -199,11 +202,11 @@ class RemoteXenServerHelper(XenServerHelper):
             current_time = datetime.datetime.now()
             timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
             output_file_path = f"/tmp/list_hosts_{timestamp_string}.json"
-            command = f"xo-cli --list-objects type=host > {output_file_path}"
-            
-            _, error = self.shell.execute_command(command)
+            command = f'{self.FETCH_LIST_HOSTS_COMMAND()} > {output_file_path}'
+
+            _, error = self.remote_helper.execute_command(command)
             if len(error) > 0:
-                self.shell.execute_command(f"rm {output_file_path}")
+                self.remote_helper.execute_command(f"rm {output_file_path}")
                 msg = f"Command {' '.join(command)} failed with error {error}"
                 self.logger.error(msg)
                 raise Exception(msg)
@@ -218,8 +221,8 @@ class RemoteXenServerHelper(XenServerHelper):
                     raise e
 
             local_file_path = os.path.join(local_dir_path, f"{output_file_path.split('/')[-1]}")
-            
-            res = self.shell.copy_file_remote_to_local(output_file_path, local_file_path)
+
+            res = self.remote_helper.copy_file_remote_to_local(output_file_path, local_file_path)
             if res:
                 self.logger.info(f"Successfuly copied file {output_file_path} from remote to local {local_file_path}")
             else:
@@ -227,7 +230,7 @@ class RemoteXenServerHelper(XenServerHelper):
                 self.logger.error(msg)
                 raise Exception(msg)
 
-            self.shell.execute_command(f"rm {output_file_path}")
+            self.remote_helper.execute_command(f"rm {output_file_path}")
 
         list_hosts = {}
         with open(local_file_path) as json_file:

@@ -18,7 +18,7 @@ class LocalXenServerHelper(XenServerHelper):
                 if cls._instance is None:
                     cls._instance = super(LocalXenServerHelper, cls).__new__(cls)
         return cls._instance
-    
+
     def __init__(self) -> None:
         if not self._initialized.is_set():
             with self._lock:
@@ -29,7 +29,11 @@ class LocalXenServerHelper(XenServerHelper):
 
     def add_host(self, label, host, username, password):
         with self._lock:
-            command = ["xo-cli", "server.add", f"label={label}", f"host={host}", f"username={username}", f"password={password}", "allowUnauthorized=true"]
+            command = self.ADD_HOST_COMMAND(label=label,
+                                            host=host,
+                                            username=username,
+                                            password=password)
+            command =  command.split()
             self.logger.info(f"Executing command on XenServer : {' '.join(command)}")
             process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         if process.returncode != 0:
@@ -43,7 +47,8 @@ class LocalXenServerHelper(XenServerHelper):
     def remove_host(self, label, host):
         server_info = self.get_server_status(label, host)
         with self._lock:
-            command = ["xo-cli", "server.remove", f"id={server_info['id']}"]
+            command = self.REMOVE_HOST_COMMAND(id=server_info['id'])
+            command =  command.split()
             self.logger.info(f"Executing command on XenServer : {' '.join(command)}")
             process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         if process.returncode != 0:
@@ -55,8 +60,9 @@ class LocalXenServerHelper(XenServerHelper):
         return bool(status)
 
     def get_server_status(self, label, host):
-        command = ["xo-cli", "server.getAll", "--json"]
-        
+        command = self.GET_SERVERS_STATUS_COMMAND()
+        command = command.split()
+
         with self._lock:
             current_time = datetime.datetime.now()
             timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
@@ -97,7 +103,8 @@ class LocalXenServerHelper(XenServerHelper):
 
         poolId = self.get_server_status(label, host)["poolId"]
 
-        command = ["xo-cli", "--list-objects", "type=VM"]
+        command = self.FETCH_LIST_VMS_COMMAND()
+        command = command.split()
         with self._lock:
             current_time = datetime.datetime.now()
             timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
@@ -138,11 +145,12 @@ class LocalXenServerHelper(XenServerHelper):
     def fetch_list_hosts(self, label, host):
         poolId = self.get_server_status(label, host)["poolId"]
 
-        command = ["xo-cli", "--list-objects", "type=host"]
+        command = self.FETCH_LIST_HOSTS_COMMAND()
+        command = command.split()
         with self._lock:
             current_time = datetime.datetime.now()
             timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
-            
+
             output_file_path = f"/tmp/list_vms_{timestamp_string}.json"
             output_file = open(output_file_path, "w")
             self.logger.info(f"Running command {' '.join(command)} and output is piped to {output_file_path}")
