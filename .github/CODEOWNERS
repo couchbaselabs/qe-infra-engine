@@ -1,0 +1,5 @@
+# Managing CODEOWNERS File 
+.github/CODEOWNERS @couchbaselabs/QE-infra-engine-review
+
+# Managing all other files
+* @couchbaselabs/QE-infra-engine-review
