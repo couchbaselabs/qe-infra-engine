@@ -34,21 +34,21 @@ class HostSDKHelper:
                     self.vm_collection_name = os.environ.get("TESTDB_HOST_POOL_VM_COLLECTION")
 
                     self.host_connection = SDKClient(ip_addr=self.cluster_ipaddr,
-                                                    username=self.cluster_username,
-                                                    password=self.cluster_password,
-                                                    bucket=self.host_pool_bucket_name,
-                                                    scope=self.host_scope_name,
-                                                    collection=self.host_collection_name)
-                    
+                                                     username=self.cluster_username,
+                                                     password=self.cluster_password,
+                                                     bucket=self.host_pool_bucket_name,
+                                                     scope=self.host_scope_name,
+                                                     collection=self.host_collection_name)
+
                     self.logger.info(f"SDK Client created for {self.host_pool_bucket_name}.{self.host_scope_name}.{self.host_collection_name}")
 
                     self.vm_connection = SDKClient(ip_addr=self.cluster_ipaddr,
-                                                username=self.cluster_username,
-                                                password=self.cluster_password,
-                                                bucket=self.host_pool_bucket_name,
-                                                scope=self.vm_scope_name,
-                                                collection=self.vm_collection_name)
-                    
+                                                   username=self.cluster_username,
+                                                   password=self.cluster_password,
+                                                   bucket=self.host_pool_bucket_name,
+                                                   scope=self.vm_scope_name,
+                                                   collection=self.vm_collection_name)
+
                     self.logger.info(f"SDK Client created for {self.host_pool_bucket_name}.{self.vm_scope_name}.{self.vm_collection_name}")
 
                     self._initialized.set()
