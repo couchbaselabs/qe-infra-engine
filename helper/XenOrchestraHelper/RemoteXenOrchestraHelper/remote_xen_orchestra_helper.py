@@ -1,4 +1,4 @@
-from helper.XenServerHelper.xen_server_helper import XenServerHelper
+from helper.XenOrchestraHelper.xen_orchestra_helper import XenOrchestraHelper
 from util.ssh_util.node_infra_helper.remote_connection_factory import RemoteConnectionObjectFactory
 import os
 import datetime
@@ -6,7 +6,7 @@ import json
 import logging
 import threading
 
-class RemoteXenServerHelper(XenServerHelper):
+class RemoteXenOrchestraHelper(XenOrchestraHelper):
 
     _instance = None
     _lock = threading.Lock()
@@ -16,7 +16,7 @@ class RemoteXenServerHelper(XenServerHelper):
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
-                    cls._instance = super(RemoteXenServerHelper, cls).__new__(cls)
+                    cls._instance = super(RemoteXenOrchestraHelper, cls).__new__(cls)
         return cls._instance
 
     def __init__(self) -> None:

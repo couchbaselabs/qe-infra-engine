@@ -1,12 +1,12 @@
 import socket
 import os
 import logging
-from helper.XenServerHelper.LocalXenServerHelper.local_xen_server_helper import LocalXenServerHelper
-from helper.XenServerHelper.RemoteXenServerHelper.remote_xen_server_helper import RemoteXenServerHelper
+from helper.XenOrchestraHelper.LocalXenOrchestraHelper.local_xen_orchestra_helper import LocalXenOrchestraHelper
+from helper.XenOrchestraHelper.RemoteXenOrchestraHelper.remote_xen_orchestra_helper import RemoteXenOrchestraHelper
 
 logger = logging.getLogger("helper")
 
-class XenServerObjectFactory:
+class XenOrchestraObjectFactory:
     @staticmethod
     def _get_local_ipaddr():
         try:
@@ -23,15 +23,15 @@ class XenServerObjectFactory:
     @staticmethod
     def fetch_helper():
 
-        local_ipaddr = XenServerObjectFactory._get_local_ipaddr()
+        local_ipaddr = XenOrchestraObjectFactory._get_local_ipaddr()
         xen_server_ipaddr = os.environ.get("XEN_SERVER_IP")
 
         target_object = None
         if local_ipaddr == xen_server_ipaddr:
             logger.info(f"XenServer is running on the same local ip")
-            target_object = LocalXenServerHelper()
+            target_object = LocalXenOrchestraHelper()
         else:
             logger.info(f"XenServer is not running locally and is on a remote host")
-            target_object = RemoteXenServerHelper()
+            target_object = RemoteXenOrchestraHelper()
 
         return target_object

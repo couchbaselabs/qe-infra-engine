@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-class XenServerHelper(ABC):
+class XenOrchestraHelper(ABC):
     
     @classmethod
     def ADD_HOST_COMMAND(cls, label, host, username, password):
