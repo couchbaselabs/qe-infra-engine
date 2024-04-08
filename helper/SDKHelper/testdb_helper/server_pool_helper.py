@@ -1,30 +1,19 @@
 import os
-import logging
 import threading
 from util.sdk_util.sdk_client import SDKClient
+from helper.SDKHelper.testdb_helper.test_db_helper import TestDBSDKHelper
+from helper.SDKHelper.sdk_helper import SingeltonMetaClass
 
-class ServerPoolSDKHelper:
+class ServerPoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
 
-    _instance = None
-    _lock = threading.Lock()
     _initialized = threading.Event()
+    _lock = threading.Lock()
 
-    def __new__(cls):
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    cls._instance = super(ServerPoolSDKHelper, cls).__new__(cls)
-        return cls._instance
-    
     def __init__(self):
         if not self._initialized.is_set():
             with self._lock:
                 if not self._initialized.is_set():
-                    self.logger = logging.getLogger("helper")
-                    self.cluster_ipaddr = os.environ.get("TESTDB_CLUSTER_IPADDR")
-                    self.cluster_username = os.environ.get("TESTDB_CLUSTER_USERNAME")
-                    self.cluster_password = os.environ.get("TESTDB_CLUSTER_PASSWORD")
-
+                    super().__init__()
                     self.server_pool_bucket_name =  os.environ.get("TESTDB_SERVER_POOL_BUCKET")
                     self.server_pool_scope = os.environ.get("TESTDB_SERVER_POOL_SCOPE")
                     self.server_pool_collection = os.environ.get("TESTDB_SERVER_POOL_COLLECTION")
@@ -38,31 +27,31 @@ class ServerPoolSDKHelper:
 
     def add_node_to_server_pool(self, doc):
         key = doc["ipaddr"]
-        res = self.server_pool_client.upsert(key, doc, retries=5)
-        if res:
-            self.logger.info(f"Document with key {key} successfully upserted into {self.server_pool_bucket_name}.{self.server_pool_scope}.{self.server_pool_collection}")
-        else:
-            self.logger.error(f"Upsert into {self.server_pool_bucket_name}.{self.server_pool_scope}.{self.server_pool_collection} failed for document with key {key}")
-        return res
+        return self.add_doc(client=self.server_pool_client,
+                            key=key,
+                            doc=doc,
+                            bucket_name=self.server_pool_bucket_name,
+                            scope=self.server_pool_scope,
+                            collection=self.server_pool_collection)
 
     def fetch_all_nodes(self):
-        query = f"SELECT META().id,* FROM `{self.server_pool_bucket_name}`.`{self.server_pool_scope}`.`{self.server_pool_collection}`"
-        self.logger.info(f"Running query {query}")
-        return self.server_pool_client.query(query, retries=5)
-    
+        return self.fetch_all_docs(client=self.server_pool_client,
+                                   bucket_name=self.server_pool_bucket_name,
+                                   scope=self.server_pool_scope,
+                                   collection=self.server_pool_collection)
+
     def get_node(self, ipaddr):
-        self.logger.info(f"Fetching doc with key {ipaddr}")
-        return self.server_pool_client.get(ipaddr, retries=5)
-    
+        return self.get_doc(client=self.server_pool_client,
+                            key=ipaddr)
+
     def delete_node(self, ipaddr):
         key = ipaddr
-        self.logger.info(f"Deleting doc with key {key}")
-        res = self.server_pool_client.delete_doc(key, retries=5)
-        if res:
-            self.logger.info(f"Document with key {key} successfully deleted from {self.server_pool_bucket_name}.{self.server_pool_scope}.{self.server_pool_collection}")
-        else:
-            self.logger.error(f"Delete from {self.server_pool_bucket_name}.{self.server_pool_scope}.{self.server_pool_collection} failed for document with key {key}")
-        return res
+        return self.delete_doc(client=self.server_pool_client,
+                               key=key,
+                               bucket_name=self.server_pool_bucket_name,
+                               scope=self.server_pool_scope,
+                               collection=self.server_pool_collection)
+
 
 
 
