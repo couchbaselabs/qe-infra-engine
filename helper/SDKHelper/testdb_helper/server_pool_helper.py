@@ -37,7 +37,9 @@ class ServerPoolSDKHelper:
                     self._initialized.set()
 
     def add_node_to_server_pool(self, doc):
-        key = doc["ipaddr"]
+        # key = doc["ipaddr"]
+        # TODO - Remove the doc_key part after cleanup of server-pool
+        key = doc["doc_key"]
         res = self.server_pool_client.upsert(key, doc, retries=5)
         if res:
             self.logger.info(f"Document with key {key} successfully upserted into {self.server_pool_bucket_name}.{self.server_pool_scope}.{self.server_pool_collection}")
@@ -47,6 +49,11 @@ class ServerPoolSDKHelper:
 
     def fetch_all_nodes(self):
         query = f"SELECT META().id,* FROM `{self.server_pool_bucket_name}`.`{self.server_pool_scope}`.`{self.server_pool_collection}`"
+        self.logger.info(f"Running query {query}")
+        return self.server_pool_client.query(query, retries=5)
+    
+    def fetch_nodes_by_poolId(self, poolId=[]):
+        query = f"SELECT META().id,* FROM `{self.server_pool_bucket_name}`.`{self.server_pool_scope}`.`{self.server_pool_collection}` WHERE ANY v IN poolId SATISFIES v IN {poolId} END;"
         self.logger.info(f"Running query {query}")
         return self.server_pool_client.query(query, retries=5)
     

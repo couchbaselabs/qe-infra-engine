@@ -75,6 +75,11 @@ class HostSDKHelper:
         query = f"SELECT * FROM `{self.host_pool_bucket_name}`.`{self.vm_scope_name}`.`{self.vm_collection_name}`"
         self.logger.info(f"Running query {query}")
         return self.vm_connection.query(query, retries=5)
+    
+    def fetch_vm(self, ipaddr):
+        query = f"SELECT * FROM `QE-host-pool`.`_default`.`vms` WHERE ANY v IN OBJECT_VALUES(addresses) SATISFIES v = '{ipaddr}' END OR mainIpAddress = '{ipaddr}';"
+        self.logger.info(f"Running query {query}")
+        return self.vm_connection.query(query, retries=5)
 
     def fetch_all_host(self):
         query = f"SELECT * FROM `{self.host_pool_bucket_name}`.`{self.host_scope_name}`.`{self.host_collection_name}`"

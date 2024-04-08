@@ -4,3 +4,4 @@
 .venv/**
 results*
 *.log
+*.DS_Store
