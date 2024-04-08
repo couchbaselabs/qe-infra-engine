@@ -1,8 +1,8 @@
 import os
 import threading
 from util.sdk_util.sdk_client import SDKClient
-from helper.SDKHelper.testdb_helper.test_db_helper import TestDBSDKHelper
-from helper.SDKHelper.sdk_helper import SingeltonMetaClass
+from helper.sdk_helper.testdb_helper.test_db_helper import TestDBSDKHelper
+from helper.sdk_helper.sdk_helper import SingeltonMetaClass
 
 class ServerPoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
 

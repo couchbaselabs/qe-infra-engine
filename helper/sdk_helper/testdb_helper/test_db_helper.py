@@ -1,5 +1,5 @@
 import os
-from helper.SDKHelper.sdk_helper import SDKHelper
+from helper.sdk_helper.sdk_helper import SDKHelper
 
 class TestDBSDKHelper(SDKHelper):
 
