@@ -75,7 +75,7 @@ class LocalXenOrchestraHelper(XenOrchestraHelper):
         if process.returncode != 0:
             if os.path.exists(output_file_path):
                 os.remove(output_file_path)
-                print(f"File '{output_file_path}' deleted successfully.")
+                self.logger.info(f"File '{output_file_path}' deleted successfully.")
             msg = f"Command {' '.join(command)} failed with error {process.stderr.strip()}"
             self.logger.error(msg)
             raise Exception(msg)
@@ -117,7 +117,7 @@ class LocalXenOrchestraHelper(XenOrchestraHelper):
         if process.returncode != 0:
             if os.path.exists(output_file_path):
                 os.remove(output_file_path)
-                print(f"File '{output_file_path}' deleted successfully.")
+                self.logger.info(f"File '{output_file_path}' deleted successfully.")
             msg = f"Command {' '.join(command)} failed with error {process.stderr.strip()}"
             self.logger.error(msg)
             raise Exception(msg)
@@ -160,7 +160,7 @@ class LocalXenOrchestraHelper(XenOrchestraHelper):
         if process.returncode != 0:
             if os.path.exists(output_file_path):
                 os.remove(output_file_path)
-                print(f"File '{output_file_path}' deleted successfully.")
+                self.logger.info(f"File '{output_file_path}' deleted successfully.")
             msg = f"Command {' '.join(command)} failed with error {process.stderr.strip()}"
             self.logger.error(msg)
             raise Exception(msg)
