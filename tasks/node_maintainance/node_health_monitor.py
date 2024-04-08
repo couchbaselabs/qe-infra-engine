@@ -98,7 +98,7 @@ def check_connectivity_node_2(doc):
             ssh.close()
             connection = True
             connection_errors.add(None)
-            retries = 0
+            break
         except paramiko.PasswordRequiredException as e:
             connection = False
             connection_errors.add("paramiko.PasswordRequiredException")
@@ -176,7 +176,8 @@ def check_connectivity_node_2(doc):
 
     result["result"] = True
     result["connection_check"] = doc["tags"]["connection_check"]
-    result["connection_check_err"] = doc["tags"]["connection_check_err"]
+    if len(connection_errors) > 1:
+        result["connection_check_err"] = doc["tags"]["connection_check_err"]
     return result
 
 def check_field_consistency(doc):
@@ -602,6 +603,7 @@ def monitor_health_nodes_parallel(docs, tasks, max_workers=None):
 def fetch_and_monitor_health(tasks, poolId):
     all_task_dic = {
         "connectivity_check" : check_connectivity_node,
+        "connectivity_check_2" : check_connectivity_node_2,
         "field_consistency_check" : check_field_consistency,
         "node_mac_address_consistency_check" : check_node_mac_addr_match,
         "node_os_consistency_check" : check_node_os_match,
@@ -627,7 +629,7 @@ def fetch_and_monitor_health(tasks, poolId):
         return result
 
     return monitor_health_nodes_parallel(result["docs"], tasks_list,
-                                         max_workers=100)
+                                         max_workers=750)
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="A tool to monitors nodes")
