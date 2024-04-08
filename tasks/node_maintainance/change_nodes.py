@@ -12,7 +12,7 @@ for project_path in project_paths:
 
 import logging.config
 import argparse
-from constants.node_template import NODE_TEMPLATE
+from constants.doc_templates import NODE_TEMPLATE
 import copy
 import concurrent
 import datetime
