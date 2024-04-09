@@ -9,7 +9,8 @@ HOST_TEMPLATE = {
     "poolId" : "",
     "group" : "",
     "xen_username" : "",
-    "xen_password" : ""
+    "xen_password" : "",
+    "tags" : {}
 }
 
 NODE_TEMPLATE = {
@@ -38,5 +39,6 @@ VM_TEMPLATE = {
     "state" : "",
     "poolId" : "",
     "group" : "",
-    "host" : ""
+    "host" : "",
+    "tags" : {}
 }

@@ -1,4 +1,4 @@
-from helper.XenOrchestraHelper.xen_orchestra_helper import XenOrchestraHelper
+from helper.xen_orchestra_helper.xen_orchestra_helper import XenOrchestraHelper
 import subprocess
 import json
 import datetime
