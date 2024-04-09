@@ -1,4 +1,4 @@
-from helper.XenOrchestraHelper.xen_orchestra_helper import XenOrchestraHelper
+from helper.xen_orchestra_helper.xen_orchestra_helper import XenOrchestraHelper
 from util.ssh_util.node_infra_helper.remote_connection_factory import RemoteConnectionObjectFactory
 import os
 import datetime
