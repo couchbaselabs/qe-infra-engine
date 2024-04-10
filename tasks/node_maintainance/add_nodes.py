@@ -41,7 +41,6 @@ def add_nodes_parallel(node_data, max_workers=None):
     return final_result
 
 def add_node(node):
-    logger.critical(f"Node number {node['count']}")
     result = {}
     required_fields = ["ssh_username", "ssh_password", "vm_name", "poolId", "origin"]
     for field in required_fields:
@@ -167,13 +166,10 @@ def main():
 
     logger.info(f"The number of nodes to add: {len(node_data)}")
 
-    i = 1
     for node in node_data:
         if "ipaddr" not in node:
             logger.error("Field ipaddr missing from one of the nodes")
             return
-        node["count"] = i
-        i+=1
 
     results = add_nodes_parallel(node_data)
 
