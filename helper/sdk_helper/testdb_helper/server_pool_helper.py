@@ -51,6 +51,11 @@ class ServerPoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
                                bucket_name=self.server_pool_bucket_name,
                                scope=self.server_pool_scope,
                                collection=self.server_pool_collection)
+    
+    def fetch_nodes_by_poolId(self, poolId : list):
+        query = f"SELECT META().id,* FROM `{self.server_pool_bucket_name}`.`{self.server_pool_scope}`.`{self.server_pool_collection}` WHERE ANY v IN poolId SATISFIES v IN {poolId} END;"
+        self.logger.info(f"Running query {query}")
+        return self.server_pool_client.query(query, retries=5)
 
 
 
