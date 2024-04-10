@@ -128,7 +128,7 @@ def add_node(node):
     doc["tags"] = {}
 
     try:
-        res = server_pool_helper.add_node_to_server_pool(doc)
+        res = server_pool_helper.upsert_node_to_server_pool(doc)
         if not res:
             result["result"] = False
             result["reason"] = f"Cannot add node {node['ipaddr']} to server pool"

@@ -40,23 +40,23 @@ class HostSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
 
                     self._initialized.set()
 
-    def add_host(self, doc):
+    def upsert_host(self, doc):
         key = doc["name"]
-        return self.add_doc(client=self.host_connection,
-                            key=key,
-                            doc=doc,
-                            bucket_name=self.host_pool_bucket_name,
-                            scope=self.host_scope_name,
-                            collection=self.host_collection_name)
+        return self.upsert_doc(client=self.host_connection,
+                               key=key,
+                               doc=doc,
+                               bucket_name=self.host_pool_bucket_name,
+                               scope=self.host_scope_name,
+                               collection=self.host_collection_name)
 
-    def add_vm(self, doc):
+    def upsert_vm(self, doc):
         key = doc["name_label"]
-        return self.add_doc(client=self.vm_connection,
-                            key=key,
-                            doc=doc,
-                            bucket_name=self.host_pool_bucket_name,
-                            scope=self.vm_scope_name,
-                            collection=self.vm_collection_name)
+        return self.upsert_doc(client=self.vm_connection,
+                               key=key,
+                               doc=doc,
+                               bucket_name=self.host_pool_bucket_name,
+                               scope=self.vm_scope_name,
+                               collection=self.vm_collection_name)
 
     def fetch_all_vms(self):
         return self.fetch_all_docs(client=self.vm_connection,

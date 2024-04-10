@@ -48,7 +48,7 @@ def check_connectivity_node(doc):
         # doc["state"] = "unreachable"
 
     try:
-        res = server_pool_helper.add_node_to_server_pool(doc)
+        res = server_pool_helper.upsert_node_to_server_pool(doc)
         if not res:
             return _get_result_failure(reason=f"Cannot upsert node {ipaddr} with node-connectivity checks to server pool")
 
@@ -152,7 +152,7 @@ def check_connectivity_node_2(doc):
         doc["tags"]["connection_check_err"] = ' '.join(str(item) for item in connection_errors)
 
     try:
-        res = server_pool_helper.add_node_to_server_pool(doc)
+        res = server_pool_helper.upsert_node_to_server_pool(doc)
         if not res:
             return _get_result_failure(reason=f"Cannot upsert node {ipaddr} with node-connectivity checks to server pool")
         logger.info(f"Document for node {ipaddr} with node-connectivity checks upserted to server pool successfuly")
@@ -205,7 +205,7 @@ def check_field_consistency(doc):
             doc["tags"]["field_consistency"]["fields_extra"] = fields_extra
 
     try:
-        res = server_pool_helper.add_node_to_server_pool(doc)
+        res = server_pool_helper.upsert_node_to_server_pool(doc)
         if not res:
             return _get_result_failure(reason=f"Cannot upsert node {ipaddr} with field_consistency checks to server pool")
         logger.info(f"Document for node {ipaddr} with field_consistency checks upserted to server pool successfuly")
@@ -289,7 +289,7 @@ def check_node_stats_match(doc):
         }
 
     try:
-        res = server_pool_helper.add_node_to_server_pool(doc)
+        res = server_pool_helper.upsert_node_to_server_pool(doc)
         if not res:
             return _get_result_failure(reason=f"Cannot upsert node {ipaddr} with node-stats-consistency checks to server pool")
         logger.info(f"Document for node {ipaddr} with node-stats-consistency checks upserted to server pool successfuly")
@@ -375,7 +375,7 @@ def check_node_with_host_pool(doc):
             }
 
     try:
-        res = server_pool_helper.add_node_to_server_pool(doc)
+        res = server_pool_helper.upsert_node_to_server_pool(doc)
         if not res:
             return _get_result_failure(reason=f"Cannot upsert node {ipaddr} with host-pool-consistency checks to server pool")
         logger.info(f"Document for node {ipaddr} with host-pool-consistency checks upserted to server pool successfuly")

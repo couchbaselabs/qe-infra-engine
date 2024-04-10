@@ -25,14 +25,14 @@ class ServerPoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
                     self.logger.info(f"SDK Client created for {self.server_pool_bucket_name}.{self.server_pool_scope}.{self.server_pool_collection}")
                     self._initialized.set()
 
-    def add_node_to_server_pool(self, doc):
+    def upsert_node_to_server_pool(self, doc):
         key = doc["ipaddr"]
-        return self.add_doc(client=self.server_pool_client,
-                            key=key,
-                            doc=doc,
-                            bucket_name=self.server_pool_bucket_name,
-                            scope=self.server_pool_scope,
-                            collection=self.server_pool_collection)
+        return self.upsert_doc(client=self.server_pool_client,
+                               key=key,
+                               doc=doc,
+                               bucket_name=self.server_pool_bucket_name,
+                               scope=self.server_pool_scope,
+                               collection=self.server_pool_collection)
 
     def fetch_all_nodes(self):
         return self.fetch_all_docs(client=self.server_pool_client,
