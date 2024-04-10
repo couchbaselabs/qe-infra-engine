@@ -6,17 +6,7 @@ import paramiko, paramiko.ssh_exception
 import logging
 import socket
 
-
 logger = logging.getLogger("tasks")
-
-
-# TODO tasks
-'''
-1. Checking state and move from booked to available if its in booked state for more than 48hrs
-2. Checking status of ntp
-3. Checking status of directories and permissions on the nodes
-4. Checking status of reserved nodes
-'''
 
 def _get_result_failure(reason, exception=None):
     result = {}
@@ -398,3 +388,11 @@ ALL_TASKS_DIC = {
     "node stats consistency check" : check_node_stats_match,
     "node host pool consistency check" : check_node_with_host_pool
 }
+
+# TODO tasks
+'''
+1. Checking state and move from booked to available if its in booked state for more than 48hrs
+2. Checking status of ntp
+3. Checking status of directories and permissions on the nodes
+4. Checking status of reserved nodes
+'''

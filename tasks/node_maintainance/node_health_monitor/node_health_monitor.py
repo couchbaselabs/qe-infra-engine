@@ -13,9 +13,8 @@ for project_path in project_paths:
 
 from helper.sdk_helper.testdb_helper.server_pool_helper import ServerPoolSDKHelper
 from util.ssh_util.node_infra_helper.remote_connection_factory import RemoteConnectionObjectFactory
-import tasks.node_maintainance.node_health_monitor.node_health_monitor_helper as node_health_monitor_helper
+import tasks.node_maintainance.node_health_monitor.node_health_monitor_utils as node_health_monitor_utils
 import logging.config
-import socket
 import concurrent
 import datetime
 import json
@@ -23,7 +22,25 @@ import argparse
 
 logger = logging.getLogger("tasks")
 
-def fetch_docs(poolId=[]):
+def fetch_tasks(tasks : list):
+    tasks_dic = {}
+    result = {}
+    if len(tasks) == 0:
+        tasks_dic = node_health_monitor_utils.ALL_TASKS_DIC
+    else:
+        for task in tasks:
+            if task in node_health_monitor_utils.ALL_TASKS_DIC:
+                tasks_dic[task] = node_health_monitor_utils.ALL_TASKS_DIC[task]
+            else:
+                result["result"] = False
+                result["reason"] = f"Cannot find task : {task}"
+                logger.error(result["reason"])
+                return result
+    result["result"] = True
+    result["tasks_dic"] = tasks_dic
+    return result
+
+def fetch_docs(poolId : list):
     result = {}
     try:
         server_pool_helper = ServerPoolSDKHelper()
@@ -78,24 +95,17 @@ def monitor_health_nodes_parallel(docs, tasks, max_workers=None):
     return final_result
 
 def fetch_and_monitor_health(tasks, poolId):
-    tasks_dic = {}
-    if tasks == "all":
-        tasks_dic = node_health_monitor_helper.ALL_TASKS_DIC
-    else:
-        for task in tasks:
-            if task in node_health_monitor_helper.ALL_TASKS_DIC:
-                tasks_dic[task] = node_health_monitor_helper.ALL_TASKS_DIC[task]
-            else:
-                result["result"] = False
-                result["reason"] = f"Cannot find task : {task}"
-                logger.error(result["reason"])
-                return result
+    
+    result_tasks = fetch_tasks(tasks)
+    if not result_tasks["result"]:
+        return result_tasks
 
-    result = fetch_docs(poolId)
-    if not result["result"]:
-        return result
+    result_docs = fetch_docs(poolId)
+    if not result_docs["result"]:
+        return result_docs
 
-    return monitor_health_nodes_parallel(result["docs"], tasks_dic,
+    return monitor_health_nodes_parallel(docs=result_docs["docs"],
+                                         tasks=result_tasks["tasks_dic"],
                                          max_workers=750)
 
 def parse_arguments():
@@ -118,7 +128,7 @@ def main():
             logger.error(f"The format of poolId is wrong : {e}")
             return
     if not args.tasks:
-        args.tasks = "all"
+        args.tasks = []
     else:
         try:
             args.tasks = eval(args.tasks)
