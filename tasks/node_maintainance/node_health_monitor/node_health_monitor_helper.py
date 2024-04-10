@@ -18,6 +18,13 @@ logger = logging.getLogger("tasks")
 4. Checking status of reserved nodes
 '''
 
+def _get_result_failure(reason, exception=None):
+    result = {}
+    result["result"] = False
+    result["reason"] = f"{reason} : {str(exception)}" if exception else f"{reason}"
+    logger.error(result["reason"])
+    return result
+
 def check_connectivity_node(doc):
     result = {}
     ipaddr = doc["ipaddr"]
@@ -26,10 +33,8 @@ def check_connectivity_node(doc):
         server_pool_helper = ServerPoolSDKHelper()
         logger.info(f"Connection to Server Pool successful")
     except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot connect to Server Pool using SDK : {e}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason=f"Cannot connect to Server Pool using SDK",
+                                  exception=e)
 
     if "tags" not in doc:
         doc["tags"] = {}
@@ -45,16 +50,12 @@ def check_connectivity_node(doc):
     try:
         res = server_pool_helper.add_node_to_server_pool(doc)
         if not res:
-            result["result"] = False
-            result["reason"] = f"Cannot upsert node {ipaddr} with node-connectivity checks to server pool"
-            logger.error(result["reason"])
-            return result
+            return _get_result_failure(reason=f"Cannot upsert node {ipaddr} with node-connectivity checks to server pool")
+
         logger.info(f"Document for node {ipaddr} with node-connectivity checks upserted to server pool successfuly")
     except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot upsert node {ipaddr} with node-connectivity checks to server pool : {e}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason=f"Cannot upsert node {ipaddr} with node-connectivity checks to server pool",
+                                  exception=e)
 
     result["result"] = True
     result["connection_check"] = doc["tags"]["connection_check"]
@@ -69,10 +70,8 @@ def check_connectivity_node_2(doc):
         server_pool_helper = ServerPoolSDKHelper()
         logger.info(f"Connection to Server Pool successful")
     except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot connect to Server Pool using SDK : {e}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason=f"Cannot connect to Server Pool using SDK",
+                                   exception=e)
 
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -155,16 +154,11 @@ def check_connectivity_node_2(doc):
     try:
         res = server_pool_helper.add_node_to_server_pool(doc)
         if not res:
-            result["result"] = False
-            result["reason"] = f"Cannot upsert node {ipaddr} with node-connectivity checks to server pool"
-            logger.error(result["reason"])
-            return result
+            return _get_result_failure(reason=f"Cannot upsert node {ipaddr} with node-connectivity checks to server pool")
         logger.info(f"Document for node {ipaddr} with node-connectivity checks upserted to server pool successfuly")
     except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot upsert node {ipaddr} with node-connectivity checks to server pool : {e}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason=f"Cannot upsert node {ipaddr} with node-connectivity checks to server pool",
+                                   exception=e)
 
     result["result"] = True
     result["connection_check"] = doc["tags"]["connection_check"]
@@ -180,11 +174,9 @@ def check_field_consistency(doc):
         server_pool_helper = ServerPoolSDKHelper()
         logger.info(f"Connection to Server Pool successful")
     except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot connect to Server Pool using SDK : {e}"
-        logger.error(result["reason"])
-        return result
-    
+        return _get_result_failure(reason="Cannot connect to Server Pool using SDK",
+                                   exception=e)
+
     fields_required = list(NODE_TEMPLATE.keys())
     # TODO - Remove the following line after server-pool cleanup
     fields_required.append("doc_key")
@@ -215,61 +207,44 @@ def check_field_consistency(doc):
     try:
         res = server_pool_helper.add_node_to_server_pool(doc)
         if not res:
-            result["result"] = False
-            result["reason"] = f"Cannot upsert node {ipaddr} with field_consistency checks to server pool"
-            logger.error(result["reason"])
-            return result
+            return _get_result_failure(reason=f"Cannot upsert node {ipaddr} with field_consistency checks to server pool")
         logger.info(f"Document for node {ipaddr} with field_consistency checks upserted to server pool successfuly")
     except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot upsert node {ipaddr} with field_consistency checks to server pool : {e}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason=f"Cannot upsert node {ipaddr} with field_consistency checks to server pool",
+                                   exception=e)
 
     result["result"] = True
     result["field_consistency"] = doc["tags"]["field_consistency"]
     return result
 
-def check_node_mac_addr_match(doc):
+def check_node_stats_match(doc):
     result = {}
     ipaddr = doc["ipaddr"]
 
     # TODO - Remove post cleaning up of server pool
     if "tags" not in doc and "connection_check" not in doc["tags"]:
-        result["result"] = False
-        result["reason"] = f"OS version check was run before connection checks for {ipaddr}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason=f"OS version check was run before connection checks for {ipaddr}")
     elif not doc["tags"]["connection_check"]:
-        result["result"] = False
-        result["reason"] = f"The node is unreachable, cannot perform os version checks for {ipaddr}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason=f"The node is unreachable, cannot perform os version checks for {ipaddr}")
 
     try:
         server_pool_helper = ServerPoolSDKHelper()
         logger.info(f"Connection to Server Pool successful")
     except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot connect to Server Pool using SDK : {e}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason="Cannot connect to Server Pool using SDK",
+                                   exception=e)
 
     try:
         remote_connection_helper = RemoteConnectionObjectFactory.fetch_helper(ipaddr,"root","couchbase")
     except Exception as e:
-        result["result"] = False
-        result["reason"] = f"The node {ipaddr} is unreachable, cannot perform os version checks : {e}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason=f"The node {ipaddr} is unreachable, cannot perform os version checks",
+                                   exception=e)
 
     try:
         mac_address_in_node = remote_connection_helper.find_mac_address()
     except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Could not find mac adddress for node {ipaddr} : {e}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason=f"Could not find mac adddress for node {ipaddr}",
+                                   exception=e)
 
     if "mac_address" in doc and mac_address_in_node == doc["mac_address"]:
         doc["tags"]["mac_address_node_check"] = {
@@ -282,63 +257,10 @@ def check_node_mac_addr_match(doc):
         }
 
     try:
-        res = server_pool_helper.add_node_to_server_pool(doc)
-        if not res:
-            result["result"] = False
-            result["reason"] = f"Cannot upsert node {ipaddr} with node-mac_address-consistency checks to server pool"
-            logger.error(result["reason"])
-            return result
-        logger.info(f"Document for node {ipaddr} with node-mac_address-consistency checks upserted to server pool successfuly")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot upsert node {ipaddr} with node-mac_address-consistency checks to server pool : {e}"
-        logger.error(result["reason"])
-        return result
-
-    result["result"] = True
-    result["os_node_match"] = doc["tags"]["mac_address_node_check"]
-    return result
-
-def check_node_memory_match(doc):
-    result = {}
-    ipaddr = doc["ipaddr"]
-
-    # TODO - Remove post cleaning up of server pool
-    if "tags" not in doc and "connection_check" not in doc["tags"]:
-        result["result"] = False
-        result["reason"] = f"OS version check was run before connection checks for {ipaddr}"
-        logger.error(result["reason"])
-        return result
-    elif not doc["tags"]["connection_check"]:
-        result["result"] = False
-        result["reason"] = f"The node is unreachable, cannot perform os version checks for {ipaddr}"
-        logger.error(result["reason"])
-        return result
-
-    try:
-        server_pool_helper = ServerPoolSDKHelper()
-        logger.info(f"Connection to Server Pool successful")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot connect to Server Pool using SDK : {e}"
-        logger.error(result["reason"])
-        return result
-
-    try:
-        remote_connection_helper = RemoteConnectionObjectFactory.fetch_helper(ipaddr,"root","couchbase")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"The node {ipaddr} is unreachable, cannot perform os version checks : {e}"
-        logger.error(result["reason"])
-        return result
-
-    try:
         memory_in_node = remote_connection_helper.find_memory_total()
     except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Could not find total memory for node {ipaddr} : {e}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason=f"Could not find total memory for node {ipaddr}",
+                                   exception=e)
 
     if "memory" in doc and memory_in_node == doc["memory"]:
         doc["tags"]["memory_node_check"] = {
@@ -351,63 +273,10 @@ def check_node_memory_match(doc):
         }
 
     try:
-        res = server_pool_helper.add_node_to_server_pool(doc)
-        if not res:
-            result["result"] = False
-            result["reason"] = f"Cannot upsert node {ipaddr} with node-memory-consistency checks to server pool"
-            logger.error(result["reason"])
-            return result
-        logger.info(f"Document for node {ipaddr} with node-memory-consistency checks upserted to server pool successfuly")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot upsert node {ipaddr} with node-memory-consistency checks to server pool : {e}"
-        logger.error(result["reason"])
-        return result
-
-    result["result"] = True
-    result["os_node_match"] = doc["tags"]["memory_node_check"]
-    return result
-
-def check_node_os_match(doc):
-    result = {}
-    ipaddr = doc["ipaddr"]
-
-    # TODO - Remove post cleaning up of server pool
-    if "tags" not in doc and "connection_check" not in doc["tags"]:
-        result["result"] = False
-        result["reason"] = f"OS version check was run before connection checks for {ipaddr}"
-        logger.error(result["reason"])
-        return result
-    elif not doc["tags"]["connection_check"]:
-        result["result"] = False
-        result["reason"] = f"The node is unreachable, cannot perform os version checks for {ipaddr}"
-        logger.error(result["reason"])
-        return result
-
-    try:
-        server_pool_helper = ServerPoolSDKHelper()
-        logger.info(f"Connection to Server Pool successful")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot connect to Server Pool using SDK : {e}"
-        logger.error(result["reason"])
-        return result
-
-    try:
-        remote_connection_helper = RemoteConnectionObjectFactory.fetch_helper(ipaddr,"root","couchbase")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"The node {ipaddr} is unreachable, cannot perform os version checks : {e}"
-        logger.error(result["reason"])
-        return result
-
-    try:
         os_node = remote_connection_helper.find_os_version()
     except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Could not find os version for node {ipaddr} : {e}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason=f"Could not find os version for node {ipaddr}",
+                                   exception=e)
 
     if "os_version" in doc and os_node == doc["os_version"]:
         doc["tags"]["os_node_check"] = {
@@ -422,18 +291,15 @@ def check_node_os_match(doc):
     try:
         res = server_pool_helper.add_node_to_server_pool(doc)
         if not res:
-            result["result"] = False
-            result["reason"] = f"Cannot upsert node {ipaddr} with node-os_version-consistency checks to server pool"
-            logger.error(result["reason"])
-            return result
-        logger.info(f"Document for node {ipaddr} with node-os_version-consistency checks upserted to server pool successfuly")
+            return _get_result_failure(reason=f"Cannot upsert node {ipaddr} with node-stats-consistency checks to server pool")
+        logger.info(f"Document for node {ipaddr} with node-stats-consistency checks upserted to server pool successfuly")
     except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot upsert node {ipaddr} with node-os_version-consistency checks to server pool : {e}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason=f"Cannot upsert node {ipaddr} with node-stats-consistency checks to server pool",
+                                   exception=e)
 
     result["result"] = True
+    result["mac_address_node_match"] = doc["tags"]["mac_address_node_check"]
+    result["memory_node_match"] = doc["tags"]["memory_node_check"]
     result["os_node_match"] = doc["tags"]["os_node_check"]
     return result
 
@@ -444,35 +310,27 @@ def check_node_with_host_pool(doc):
         host_sdk_helper = HostSDKHelper()
         logger.info(f"Connection to Host Pool successful")
     except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot connect to Host Pool using SDK : {e}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason="Cannot connect to Host Pool using SDK",
+                                   exception=e)
 
     try:
         server_pool_helper = ServerPoolSDKHelper()
         logger.info(f"Connection to Server Pool successful")
     except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot connect to Server Pool using SDK : {e}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason="Cannot connect to Server Pool using SDK",
+                                   exception=e)
 
     try:
         vms = host_sdk_helper.fetch_vm(ipaddr=ipaddr)
     except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot fetch vm {ipaddr} from Host Pool using SDK : {e}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason=f"Cannot fetch vm {ipaddr} from Host Pool using SDK",
+                                   exception=e)
 
     try:
         vms = [vm[host_sdk_helper.vm_collection_name] for vm in vms]
     except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Unable to parse query result from Host Pool using SDK : {e}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason="Unable to parse query result from Host Pool using SDK",
+                                   exception=e)
 
     if "tags" not in doc:
         doc["tags"] = {}
@@ -519,16 +377,11 @@ def check_node_with_host_pool(doc):
     try:
         res = server_pool_helper.add_node_to_server_pool(doc)
         if not res:
-            result["result"] = False
-            result["reason"] = f"Cannot upsert node {ipaddr} with host-pool-consistency checks to server pool"
-            logger.error(result["reason"])
-            return result
+            return _get_result_failure(reason=f"Cannot upsert node {ipaddr} with host-pool-consistency checks to server pool")
         logger.info(f"Document for node {ipaddr} with host-pool-consistency checks upserted to server pool successfuly")
     except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot upsert node {ipaddr} with host-pool-consistency checks to server pool : {e}"
-        logger.error(result["reason"])
-        return result
+        return _get_result_failure(reason=f"Cannot upsert node {ipaddr} with host-pool-consistency checks to server pool",
+                                   exception=e)
 
     result["result"] = True
     result["ip_in_host_pool"] = doc["tags"]["ip_in_host_pool"]
@@ -539,11 +392,9 @@ def check_node_with_host_pool(doc):
     return result
 
 ALL_TASKS_DIC = {
-    "connectivity_check" : check_connectivity_node,
-    "connectivity_check_2" : check_connectivity_node_2,
-    "field_consistency_check" : check_field_consistency,
-    "node_mac_address_consistency_check" : check_node_mac_addr_match,
-    "node_os_consistency_check" : check_node_os_match,
-    "node_memory_consistency_check" : check_node_memory_match,
-    "node_host_pool_consistency_check" : check_node_with_host_pool
+    "connectivity check" : check_connectivity_node,
+    "connectivity check detail" : check_connectivity_node_2,
+    "field consistency check" : check_field_consistency,
+    "node stats consistency check" : check_node_stats_match,
+    "node host pool consistency check" : check_node_with_host_pool
 }
