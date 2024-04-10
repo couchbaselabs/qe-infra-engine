@@ -11,10 +11,10 @@ for project_path in project_paths:
     if project_path not in sys.path:
         sys.path.append(project_path)
 
-from helper.SDKHelper.testdb_helper.host_pool_helper import HostSDKHelper
-from helper.SDKHelper.testdb_helper.server_pool_helper import ServerPoolSDKHelper
+from helper.sdk_helper.testdb_helper.host_pool_helper import HostSDKHelper
+from helper.sdk_helper.testdb_helper.server_pool_helper import ServerPoolSDKHelper
 from util.ssh_util.node_infra_helper.remote_connection_factory import RemoteConnectionObjectFactory
-from constants.node_template import NODE_TEMPLATE
+from constants.doc_templates import NODE_TEMPLATE
 import logging.config
 import paramiko, paramiko.ssh_exception
 import socket
@@ -25,6 +25,14 @@ import json
 import argparse
 
 logger = logging.getLogger("tasks")
+
+# TODO tasks
+'''
+1. Checking state and move from booked to available if its in booked state for more than 48hrs
+2. Checking status of ntp
+3. Checking status of directories and permissions on the nodes
+4. Checking status of reserved nodes
+'''
 
 def check_connectivity_node(doc):
     result = {}
