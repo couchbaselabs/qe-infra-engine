@@ -1,8 +1,8 @@
 import socket
 import os
 import logging
-from helper.XenOrchestraHelper.LocalXenOrchestraHelper.local_xen_orchestra_helper import LocalXenOrchestraHelper
-from helper.XenOrchestraHelper.RemoteXenOrchestraHelper.remote_xen_orchestra_helper import RemoteXenOrchestraHelper
+from helper.xen_orchestra_helper.local_xen_orchestra_helper import LocalXenOrchestraHelper
+from helper.xen_orchestra_helper.remote_xen_orchestra_helper import RemoteXenOrchestraHelper
 
 logger = logging.getLogger("helper")
 

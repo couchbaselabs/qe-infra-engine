@@ -1,4 +1,4 @@
-from helper.XenOrchestraHelper.xen_orchestra_helper import XenOrchestraHelper
+from helper.xen_orchestra_helper.xen_orchestra_helper import XenOrchestraHelper
 import subprocess
 import json
 import datetime
@@ -29,7 +29,7 @@ class LocalXenOrchestraHelper(XenOrchestraHelper):
 
     def add_host(self, label, host, username, password):
         with self._lock:
-            command = self.ADD_HOST_COMMAND(label=label,
+            command = self.get_add_host_command(label=label,
                                             host=host,
                                             username=username,
                                             password=password)
@@ -47,7 +47,7 @@ class LocalXenOrchestraHelper(XenOrchestraHelper):
     def remove_host(self, label, host):
         server_info = self.get_server_status(label, host)
         with self._lock:
-            command = self.REMOVE_HOST_COMMAND(id=server_info['id'])
+            command = self.get_remove_host_command(id=server_info['id'])
             command =  command.split()
             self.logger.info(f"Executing command on XenServer : {' '.join(command)}")
             process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
@@ -60,7 +60,7 @@ class LocalXenOrchestraHelper(XenOrchestraHelper):
         return bool(status)
 
     def get_server_status(self, label, host):
-        command = self.GET_SERVERS_STATUS_COMMAND()
+        command = self.get_servers_status_command()
         command = command.split()
 
         with self._lock:
@@ -75,7 +75,7 @@ class LocalXenOrchestraHelper(XenOrchestraHelper):
         if process.returncode != 0:
             if os.path.exists(output_file_path):
                 os.remove(output_file_path)
-                print(f"File '{output_file_path}' deleted successfully.")
+                self.logger.info(f"File '{output_file_path}' deleted successfully.")
             msg = f"Command {' '.join(command)} failed with error {process.stderr.strip()}"
             self.logger.error(msg)
             raise Exception(msg)
@@ -103,7 +103,7 @@ class LocalXenOrchestraHelper(XenOrchestraHelper):
 
         poolId = self.get_server_status(label, host)["poolId"]
 
-        command = self.FETCH_LIST_VMS_COMMAND()
+        command = self.get_fetch_list_vms_command()
         command = command.split()
         with self._lock:
             current_time = datetime.datetime.now()
@@ -117,7 +117,7 @@ class LocalXenOrchestraHelper(XenOrchestraHelper):
         if process.returncode != 0:
             if os.path.exists(output_file_path):
                 os.remove(output_file_path)
-                print(f"File '{output_file_path}' deleted successfully.")
+                self.logger.info(f"File '{output_file_path}' deleted successfully.")
             msg = f"Command {' '.join(command)} failed with error {process.stderr.strip()}"
             self.logger.error(msg)
             raise Exception(msg)
@@ -145,7 +145,7 @@ class LocalXenOrchestraHelper(XenOrchestraHelper):
     def fetch_list_hosts(self, label, host):
         poolId = self.get_server_status(label, host)["poolId"]
 
-        command = self.FETCH_LIST_HOSTS_COMMAND()
+        command = self.get_fetch_list_hosts_command()
         command = command.split()
         with self._lock:
             current_time = datetime.datetime.now()
@@ -160,7 +160,7 @@ class LocalXenOrchestraHelper(XenOrchestraHelper):
         if process.returncode != 0:
             if os.path.exists(output_file_path):
                 os.remove(output_file_path)
-                print(f"File '{output_file_path}' deleted successfully.")
+                self.logger.info(f"File '{output_file_path}' deleted successfully.")
             msg = f"Command {' '.join(command)} failed with error {process.stderr.strip()}"
             self.logger.error(msg)
             raise Exception(msg)

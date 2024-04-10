@@ -12,12 +12,11 @@ for project_path in project_paths:
 
 import logging.config
 import argparse
-from constants.node_template import NODE_TEMPLATE
-import copy
+from constants.doc_templates import NODE_TEMPLATE
 import concurrent
 import datetime
 import json
-from helper.SDKHelper.testdb_helper.server_pool_helper import ServerPoolSDKHelper
+from helper.sdk_helper.testdb_helper.server_pool_helper import ServerPoolSDKHelper
 from util.ssh_util.node_infra_helper.remote_connection_factory import RemoteConnectionObjectFactory
 import tasks.node_maintainance.add_nodes as add_node_task
 
