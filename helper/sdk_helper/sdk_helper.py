@@ -11,7 +11,7 @@ class SDKHelper:
         self.logger.info(f"Running query {query}")
         return client.query(query, retries=5)
 
-    def add_doc(self, client, key, doc, bucket_name, scope, collection):
+    def upsert_doc(self, client, key, doc, bucket_name, scope, collection):
         res = client.upsert(key, doc, retries=5)
         if res:
             self.logger.info(f"Document with key {key} successfully upserted into {bucket_name}.{scope}.{collection}")

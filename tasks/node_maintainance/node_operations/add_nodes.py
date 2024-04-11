@@ -4,8 +4,8 @@ import os
 # Adding project path into the sys paths for scanning all the modules
 script_dir = os.path.dirname(os.path.realpath(__file__))
 project_paths = [
-    os.path.join(script_dir, "..", ".."),
-    os.path.join(script_dir, "..", "..", "util", "ssh_util")
+    os.path.join(script_dir, "..", "..", ".."),
+    os.path.join(script_dir, "..", "..", "..", "util", "ssh_util")
 ]
 for project_path in project_paths:
     if project_path not in sys.path:
@@ -128,7 +128,7 @@ def add_node(node):
     doc["tags"] = {}
 
     try:
-        res = server_pool_helper.add_node_to_server_pool(doc)
+        res = server_pool_helper.upsert_node_to_server_pool(doc)
         if not res:
             result["result"] = False
             result["reason"] = f"Cannot add node {node['ipaddr']} to server pool"
@@ -151,7 +151,7 @@ def parse_arguments():
     return parser.parse_args()
 
 def main():
-    logging_conf_path = os.path.join(script_dir, "..", "..", "logging.conf")
+    logging_conf_path = os.path.join(script_dir, "..", "..", "..", "logging.conf")
     logging.config.fileConfig(logging_conf_path)
 
     args = parse_arguments()
@@ -175,7 +175,7 @@ def main():
 
     current_time = datetime.datetime.now()
     timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
-    result_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", f"results_{timestamp_string}")
+    result_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", f"results_{timestamp_string}")
     if not os.path.exists(result_dir_path):
         logger.info(f"Creating directory {result_dir_path}")
         try:
