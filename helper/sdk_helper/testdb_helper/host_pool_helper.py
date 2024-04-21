@@ -8,7 +8,7 @@ class HostSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
 
     _initialized = threading.Event()
     _lock = threading.Lock()
-    
+
     def __init__(self) -> None:
         if not self._initialized.is_set():
             with self._lock:
@@ -40,7 +40,7 @@ class HostSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
 
                     self._initialized.set()
 
-    def add_host(self, doc):
+    def upsert_host(self, doc):
         key = doc["name"]
         return self.add_doc(client=self.host_connection,
                             key=key,
@@ -49,7 +49,7 @@ class HostSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
                             scope=self.host_scope_name,
                             collection=self.host_collection_name)
 
-    def add_vm(self, doc):
+    def upsert_vm(self, doc):
         key = doc["name_label"]
         return self.add_doc(client=self.vm_connection,
                             key=key,
@@ -69,3 +69,18 @@ class HostSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
                                    bucket_name=self.host_pool_bucket_name,
                                    scope=self.host_scope_name,
                                    collection=self.host_collection_name)
+
+    def fetch_vms_by_host(self, host):
+        query = f"SELECT * FROM `QE-host-pool`.`_default`.`vms` WHERE host={host}"
+        self.logger.info(f"Running query {query}")
+        return self.vm_connection.query(query, retries=5)
+    
+    def fetch_hosts_by_group(self, group):
+        query = f"SELECT * FROM `{self.host_pool_bucket_name}`.`{self.host_scope_name}`.`{self.host_scope_name}` WHERE ANY v IN group SATISFIES v IN {group} END;"
+        self.logger.info(f"Running query {query}")
+        return self.host_connection.query(query, retries=5)
+
+    def fetch_vms_by_group(self, group):
+        query = f"SELECT * FROM `{self.host_pool_bucket_name}`.`{self.vm_scope_name}`.`{self.vm_collection_name}` WHERE ANY v IN group SATISFIES v IN {group} END;"
+        self.logger.info(f"Running query {query}")
+        return self.vm_connection.query(query, retries=5)

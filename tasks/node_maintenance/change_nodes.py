@@ -18,7 +18,7 @@ import datetime
 import json
 from helper.sdk_helper.testdb_helper.server_pool_helper import ServerPoolSDKHelper
 from util.ssh_util.node_infra_helper.remote_connection_factory import RemoteConnectionObjectFactory
-import tasks.node_maintainance.add_nodes as add_node_task
+import tasks.node_maintenance.add_nodes as add_node_task
 
 logger = logging.getLogger("tasks")
 

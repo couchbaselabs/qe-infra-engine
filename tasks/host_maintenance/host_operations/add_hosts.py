@@ -89,7 +89,7 @@ def add_host_on_testdb(host_data, host, group, xen_username, xen_password):
         host_doc["tags"]["reboot_required"] = False
 
     try:
-        res = host_pool_helper.add_host(doc=host_doc)
+        res = host_pool_helper.upsert_host(doc=host_doc)
         if not res:
             return _get_result_failure(reason=f"Cannot add host {host} to host pool")
         logger.info(f"Document for host {host} added to host pool successfuly")
@@ -146,7 +146,7 @@ def add_vms_on_testdb(vms_data, host, group):
 
         result["name_label"] = {}
         try:
-            res = host_pool_helper.add_vm(doc=vm_doc)
+            res = host_pool_helper.upsert_vm(doc=vm_doc)
             if not res:
                 result["name_label"] = _get_result_failure(reason=f"Cannot add vm {vm_doc["name_label"]} to host pool")
             logger.info(f"Document for vm {vm_doc["name_label"]} added to host pool successfuly")
