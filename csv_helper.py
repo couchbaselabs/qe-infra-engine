@@ -2,12 +2,14 @@ from helper.sdk_helper.testdb_helper.host_pool_helper import HostSDKHelper
 from helper.sdk_helper.testdb_helper.server_pool_helper import ServerPoolSDKHelper
 import pandas as pd
 
-def convert_tags_to_fields(tags, result):
+def convert_tags_to_fields(prefix, tags, result):
+    if prefix:
+        prefix = prefix + "-"
     for tag in tags:
-        if tag is isinstance(dict):
-            convert_tags_to_fields(tag, result)
+        if isinstance(tags[tag], dict):
+            convert_tags_to_fields(tag, tags[tag], result)
         else:
-            result[tag] = tags[tag] 
+            result[f'{prefix}{tag}'] = tags[tag]
 
 def convert_all_nodes_csv():
     sdk_helper = ServerPoolSDKHelper()
@@ -16,11 +18,11 @@ def convert_all_nodes_csv():
     for row in query_result:
         doc = row[sdk_helper.server_pool_collection]
         doc["doc_key"] = row["id"]
-        
+
         if "tags" in doc:
-            tags =  doc["tags"] 
+            tags =  doc["tags"]
             tags_result = {}
-            convert_tags_to_fields(tags, tags_result)
+            convert_tags_to_fields("", tags, tags_result)
             for tag in tags_result:
                 doc[tag] = tags_result[tag]
             doc.pop("tags", None)
@@ -36,15 +38,15 @@ def convert_all_hosts_csv():
     for row in query_result:
         doc = row[sdk_helper.host_collection_name]
         doc["doc_key"] = row["id"]
-        
+
         if "tags" in doc:
-            tags =  doc["tags"] 
+            tags =  doc["tags"]
             tags_result = {}
-            convert_tags_to_fields(tags, tags_result)
+            convert_tags_to_fields("", tags, tags_result)
             for tag in tags_result:
                 doc[tag] = tags_result[tag]
             doc.pop("tags", None)
-        
+
         docs.append(doc)
     df = pd.DataFrame(docs)
     df.to_csv('all_hosts.csv', index=False)
@@ -56,18 +58,18 @@ def convert_all_vms_csv():
     for row in query_result:
         doc = row[sdk_helper.vm_collection_name]
         doc["doc_key"] = row["id"]
-        
+
         if "tags" in doc:
-            tags =  doc["tags"] 
+            tags =  doc["tags"]
             tags_result = {}
-            convert_tags_to_fields(tags, tags_result)
+            convert_tags_to_fields("", tags, tags_result)
             for tag in tags_result:
                 doc[tag] = tags_result[tag]
             doc.pop("tags", None)
-            
+
         docs.append(doc)
     df = pd.DataFrame(docs)
-    df.to_csv('all_hosts.csv', index=False)
+    df.to_csv('all_vms.csv', index=False)
 
 convert_all_vms_csv()
 convert_all_hosts_csv()
