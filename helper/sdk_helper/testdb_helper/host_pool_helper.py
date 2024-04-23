@@ -76,7 +76,7 @@ class HostSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
                                    collection=self.host_collection_name)
 
     def fetch_vms_by_host(self, host):
-        query = f"SELECT * FROM `QE-host-pool`.`_default`.`vms` WHERE host={host}"
+        query = f"SELECT * FROM `QE-host-pool`.`_default`.`vms` WHERE host='{host}'"
         self.logger.info(f"Running query {query}")
         return self.vm_connection.query(query, retries=5)
     

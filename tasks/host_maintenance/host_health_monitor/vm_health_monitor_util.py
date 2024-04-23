@@ -176,8 +176,8 @@ def check_vm_field_consistency(vm_doc):
     return result
 
 ALL_TASKS_DIC = {
-    # "check vm os version" : check_vm_os_version,
-    # "check vm network" : check_vm_network,
-    # "vm server pool consistency check" : check_vms_in_server_pool,
-    # "vm field consistency check" : check_vm_field_consistency,
+    "check vm os version" : check_vm_os_version,
+    "check vm network" : check_vm_network,
+    "vm server pool consistency check" : check_vms_in_server_pool,
+    "vm field consistency check" : check_vm_field_consistency,
 }

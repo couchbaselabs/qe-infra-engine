@@ -21,10 +21,8 @@ def check_for_vms_state(doc : dict, vm_docs : list):
     except Exception as e:
         return _get_result_failure(reason=f"Cannot connect to Host Pool using SDK",
                                    exception=e)
-    
+    doc["tags"]["vm_states"] = {}
     for vm in vm_docs:
-        if "vm_states" not in doc["tags"]:
-            doc["tags"]["vm_states"] = {}
         if vm["state"] not in doc["tags"]["vm_states"]:
             doc["tags"]["vm_states"][vm["state"]] = 0
         doc["tags"]["vm_states"][vm["state"]] += 1
@@ -58,9 +56,10 @@ def check_for_cpu_usage(doc : dict, vm_docs : list):
 
     cpu = 0
     for vm in vm_docs:
-        cpu += int(vm["cpu"])
+        if vm["state"] == "Running":
+            cpu += int(vm["cpu"])
 
-    doc["tags"]["allocated_cpu_utilization"] = cpu / doc["cpu"] * 100
+    doc["tags"]["allocated_cpu_utilization"] = cpu / int(doc["cpu"]) * 100
 
     try:
         res = host_pool_helper.upsert_host(doc)
@@ -86,11 +85,12 @@ def check_for_mem_usage(doc : dict, vm_docs : list):
         return _get_result_failure(reason=f"Cannot connect to Host Pool using SDK",
                                    exception=e)
 
-    cpu = 0
+    memory = 0
     for vm in vm_docs:
-        cpu += int(vm["memory"])
+        if vm["state"] == "Running":
+            memory += int(vm["memory"])
 
-    doc["tags"]["allocated_memory_utilization"] = cpu / doc["memory"] * 100
+    doc["tags"]["allocated_memory_utilization"] = memory / int(doc["memory"]) * 100
 
     try:
         res = host_pool_helper.upsert_host(doc)
@@ -105,7 +105,7 @@ def check_for_mem_usage(doc : dict, vm_docs : list):
     result["allocated_memory_utilization"] = doc["tags"]["allocated_memory_utilization"]
     return result
 
-def update_doc(doc : dict, vm_docs : list):
+def update_doc(doc : dict):
     host_data = {
         "username" : doc["xen_username"],
         "password" : doc["xen_password"],
@@ -116,7 +116,7 @@ def update_doc(doc : dict, vm_docs : list):
 
 ALL_TASKS_DIC = {
     "update doc" : update_doc,
-    # "allocated memory utilization check" : check_for_mem_usage,
-    # "allocated cpu utilization check" : check_for_cpu_usage,
-    # "check vms state" : check_for_vms_state
+    "allocated memory utilization check" : check_for_mem_usage,
+    "allocated cpu utilization check" : check_for_cpu_usage,
+    "check vms state" : check_for_vms_state
 }

@@ -67,7 +67,7 @@ def add_host_on_testdb(host_data, host, group, xen_username, xen_password):
     host_doc["cpu"] = -1
     if "CPUs" in host_data:
         if "cpu_count" in host_data["CPUs"]:
-            host_doc["cpu"] = host_data["CPUs"]["cpu_count"]
+            host_doc["cpu"] = int(host_data["CPUs"]["cpu_count"])
     if "name_label" in host_data:
         host_doc["name_label"] = host_data["name_label"]
     host_doc["memory"] = -1
@@ -121,7 +121,7 @@ def add_vms_on_testdb(vms_data, host, group):
 
         vm_doc["cpu"] = -1
         if "CPUs" in vm and "number" in vm["CPUs"]:
-            vm_doc["cpu"] = vm["CPUs"]["number"]
+            vm_doc["cpu"] = int(vm["CPUs"]["number"])
 
         vm_doc["mainIpAddress"] = ""
         if "mainIpAddress" in vm:

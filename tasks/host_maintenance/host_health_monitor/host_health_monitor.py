@@ -127,6 +127,18 @@ def monitor_health_hosts_parallel(host_docs, host_tasks, vm_tasks, max_workers=N
     final_result = {}
     final_result_hosts = {}
     final_result_vms = {}
+
+    if "update doc" in host_tasks:
+        logger.info(f'Updating documents for hosts')
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures_hosts = {executor.submit(host_tasks["update doc"], host_doc) : host_doc for host_doc in host_docs}
+        final_result_hosts["update_docs_task"] = {}
+        for future in concurrent.futures.as_completed(futures_hosts):
+            doc = futures_hosts[future]
+            result = future.result()
+            final_result_hosts["update_docs_task"][doc["name"]] = result
+        host_tasks.pop("update doc", None)
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures_hosts = {}
         futures_vms = {}
@@ -147,7 +159,7 @@ def monitor_health_hosts_parallel(host_docs, host_tasks, vm_tasks, max_workers=N
             final_result_hosts[doc["name"]] = result
 
         for future in concurrent.futures.as_completed(futures_vms):
-            doc = futures_hosts[future]
+            doc = futures_vms[future]
             result = future.result()
             final_result_vms[doc["name_label"]] = result
 
