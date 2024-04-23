@@ -8,7 +8,7 @@ class HostSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
 
     _initialized = threading.Event()
     _lock = threading.Lock()
-    
+
     def __init__(self) -> None:
         if not self._initialized.is_set():
             with self._lock:
@@ -74,3 +74,32 @@ class HostSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
                                    bucket_name=self.host_pool_bucket_name,
                                    scope=self.host_scope_name,
                                    collection=self.host_collection_name)
+
+    def fetch_vms_by_host(self, host):
+        query = f"SELECT META().id, * FROM `QE-host-pool`.`_default`.`vms` WHERE host='{host}'"
+        self.logger.info(f"Running query {query}")
+        return self.vm_connection.query(query, retries=5)
+    
+    def fetch_hosts_by_group(self, group):
+        query = f"SELECT META().id,*  FROM `{self.host_pool_bucket_name}`.`{self.host_scope_name}`.`{self.host_collection_name}` WHERE `group` IN {group}"
+        self.logger.info(f"Running query {query}")
+        return self.host_connection.query(query, retries=5)
+
+    def fetch_vms_by_group(self, group):
+        query = f"SELECT META().id,* FROM `{self.host_pool_bucket_name}`.`{self.vm_scope_name}`.`{self.vm_collection_name}` WHERE `group` IN {group}"
+        self.logger.info(f"Running query {query}")
+        return self.vm_connection.query(query, retries=5)
+    
+    def remove_vm(self, key):
+        return self.delete_doc(client=self.vm_connection,
+                               key=key,
+                               bucket_name=self.host_pool_bucket_name,
+                               scope=self.vm_scope_name,
+                               collection=self.vm_collection_name)
+    
+    def remove_host(self, key):
+        return self.delete_doc(client=self.host_connection,
+                               key=key,
+                               bucket_name=self.host_pool_bucket_name,
+                               scope=self.host_scope_name,
+                               collection=self.host_collection_name)
