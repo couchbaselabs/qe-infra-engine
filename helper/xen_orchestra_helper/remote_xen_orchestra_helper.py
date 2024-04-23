@@ -78,7 +78,7 @@ class RemoteXenOrchestraHelper(XenOrchestraHelper):
                 self.logger.error(msg)
                 raise Exception(msg)
 
-            local_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", f"tmp_{timestamp_string}")
+            local_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", f"tmp_{timestamp_string}")
             if not os.path.exists(local_dir_path):
                 self.logger.info(f"Creating directory {local_dir_path}")
                 try:
@@ -145,7 +145,7 @@ class RemoteXenOrchestraHelper(XenOrchestraHelper):
                 self.logger.error(msg)
                 raise Exception(msg)
 
-            local_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", f"tmp_{timestamp_string}")
+            local_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", f"tmp_{timestamp_string}")
             if not os.path.exists(local_dir_path):
                 self.logger.info(f"Creating directory {local_dir_path}")
                 try:
@@ -198,7 +198,7 @@ class RemoteXenOrchestraHelper(XenOrchestraHelper):
     def fetch_list_hosts(self, label, host):
         poolId = self.get_server_status(label, host)["poolId"]
 
-        with self.lock:
+        with self._lock:
             current_time = datetime.datetime.now()
             timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
             output_file_path = f"/tmp/list_hosts_{timestamp_string}.json"
@@ -211,7 +211,7 @@ class RemoteXenOrchestraHelper(XenOrchestraHelper):
                 self.logger.error(msg)
                 raise Exception(msg)
 
-            local_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", f"tmp_{timestamp_string}")
+            local_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", f"tmp_{timestamp_string}")
             if not os.path.exists(local_dir_path):
                 self.logger.info(f"Creating directory {local_dir_path}")
                 try:
