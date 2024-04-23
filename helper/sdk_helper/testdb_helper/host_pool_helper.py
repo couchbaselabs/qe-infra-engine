@@ -64,6 +64,10 @@ class HostSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
                                    scope=self.vm_scope_name,
                                    collection=self.vm_collection_name)
     
+    def fetch_host(self, host):
+        return self.get_doc(client=self.host_connection,
+                            key=host)
+    
     def fetch_vm(self, ipaddr):
         query = f"SELECT * FROM `QE-host-pool`.`_default`.`vms` WHERE ANY v IN OBJECT_VALUES(addresses) SATISFIES v = '{ipaddr}' END OR mainIpAddress = '{ipaddr}';"
         self.logger.info(f"Running query {query}")

@@ -280,6 +280,7 @@ def add_host(host):
     elif len(vms_data) > 0:
         result["adding_vm_data"] = add_vms_on_testdb(vms_data, label, group)
 
+    result["result"] = True
     return result
 
 def parse_arguments():
