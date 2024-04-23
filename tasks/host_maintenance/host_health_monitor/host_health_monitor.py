@@ -12,7 +12,7 @@ for project_path in project_paths:
         sys.path.append(project_path)
 
 from helper.sdk_helper.testdb_helper.host_pool_helper import HostSDKHelper
-from util.ssh_util.node_infra_helper.remote_connection_factory import RemoteConnectionObjectFactory
+import tasks.host_maintenance.host_operations.update_hosts as update_hosts
 import tasks.host_maintenance.host_health_monitor.host_health_monitor_util as host_health_monitor_utils
 import tasks.host_maintenance.host_health_monitor.vm_health_monitor_util as vm_health_monitor_utils
 import logging.config
@@ -131,17 +131,6 @@ def monitor_health_hosts_parallel(host_docs, host_tasks, vm_tasks, max_workers=N
     final_result_hosts = {}
     final_result_vms = {}
 
-    if "update doc" in host_tasks:
-        logger.info(f'Updating documents for hosts')
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures_hosts = {executor.submit(host_tasks["update doc"], host_doc) : host_doc for host_doc in host_docs}
-        final_result_hosts["update_docs_task"] = {}
-        for future in concurrent.futures.as_completed(futures_hosts):
-            doc = futures_hosts[future]
-            result = future.result()
-            final_result_hosts["update_docs_task"][doc["name"]] = result
-        host_tasks.pop("update doc", None)
-
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures_hosts = {}
         futures_vms = {}
@@ -170,7 +159,8 @@ def monitor_health_hosts_parallel(host_docs, host_tasks, vm_tasks, max_workers=N
     final_result["vm_tasks"] = final_result_vms
     return final_result
 
-def fetch_and_monitor_health(host_tasks, vm_tasks, group):
+def fetch_and_monitor_health(host_tasks, vm_tasks, group, update_docs_task=False):
+
 
     result_host_tasks = fetch_tasks(tasks=host_tasks,
                                     type="host_tasks")
@@ -186,13 +176,31 @@ def fetch_and_monitor_health(host_tasks, vm_tasks, group):
     if not result_host_docs["result"]:
         return result_host_docs
 
-    return monitor_health_hosts_parallel(host_docs=result_host_docs["host_docs"],
-                                         host_tasks=result_host_tasks["tasks_dic"],
-                                         vm_tasks=result_vm_tasks["tasks_dic"],
-                                         max_workers=750)
+    final_results = {}
+
+    hosts_data = []
+    for host in result_host_docs["host_docs"]:
+        hosts_data.append({
+            "label": host["name"]
+        })
+    if update_docs_task:
+        logger.info(f'Updating documents for hosts')
+        final_results["update_docs_task"] = update_hosts.update_hosts_parallel(hosts_data=hosts_data)
+        # Need to fetch fresh updated data
+        result_host_docs = fetch_hosts(group)
+        if not result_host_docs["result"]:
+            return result_host_docs
+
+    monitor_hosts_res = monitor_health_hosts_parallel(host_docs=result_host_docs["host_docs"],
+                                                      host_tasks=result_host_tasks["tasks_dic"],
+                                                      vm_tasks=result_vm_tasks["tasks_dic"],
+                                                      max_workers=750)
+    final_results.update(monitor_hosts_res)
+    return final_results
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="A tool to monitors nodes")
+    parser.add_argument("--update_docs", action="store_true", help="Update all docs of QE-host-pool")
     parser.add_argument("--group", type=str, help="The group")
     parser.add_argument("--host_tasks", type=str, help="The tasks")
     parser.add_argument("--vm_tasks", type=str, help="The tasks")
@@ -231,7 +239,8 @@ def main():
 
     results = fetch_and_monitor_health(group=args.group,
                                        host_tasks=args.host_tasks,
-                                       vm_tasks=args.vm_tasks)
+                                       vm_tasks=args.vm_tasks,
+                                       update_docs_task=args.update_docs)
 
     current_time = datetime.datetime.now()
     timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')

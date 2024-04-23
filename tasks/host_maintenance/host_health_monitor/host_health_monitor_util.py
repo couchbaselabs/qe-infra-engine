@@ -112,18 +112,7 @@ def check_for_mem_usage(doc : dict, vm_docs : list):
     result["allocated_memory_utilization"] = doc["tags"]["allocated_memory_utilization"]
     return result
 
-def update_doc(doc : dict):
-    host_data = {
-        "username" : doc["xen_username"],
-        "password" : doc["xen_password"],
-        "group" : doc["group"],
-        "label" : doc["name"]
-    }
-    result = {}
-    result["add_host"] = add_host(host_data)
-
 ALL_TASKS_DIC = {
-    # "update doc" : update_doc,
     "allocated memory utilization check" : check_for_mem_usage,
     "allocated cpu utilization check" : check_for_cpu_usage,
     "check vms state" : check_for_vms_state
