@@ -68,8 +68,8 @@ def add_host_on_testdb(host_data, host, group, xen_username, xen_password):
     if "CPUs" in host_data:
         if "cpu_count" in host_data["CPUs"]:
             host_doc["cpu"] = host_data["CPUs"]["cpu_count"]
-
-    host_doc["name_label"] = host_data["name_label"]
+    if "name_label" in host_data:
+        host_doc["name_label"] = host_data["name_label"]
     host_doc["memory"] = -1
     if "memory" in host_data and "size" in host_data["memory"]:
         host_doc["memory"] = host_data["memory"]["size"]
@@ -78,7 +78,9 @@ def add_host_on_testdb(host_data, host, group, xen_username, xen_password):
     if "power_state" in host_data:
         host_doc["state"] = host_data["power_state"]
 
-    host_doc["poolId"] = host_data["$poolId"]
+    host_doc["poolId"] = ""
+    if "$poolId" in host_data:
+        host_doc["poolId"] = host_data["$poolId"]
     host_doc["group"] = group
     host_doc["xen_username"] = xen_username
     host_doc["xen_password"] = xen_password
@@ -99,6 +101,7 @@ def add_host_on_testdb(host_data, host, group, xen_username, xen_password):
 
     result["result"] = True
     result["host_doc"] = host_doc
+    return result
 
 def add_vms_on_testdb(vms_data, host, group):
     result = {}
@@ -128,7 +131,9 @@ def add_vms_on_testdb(vms_data, host, group):
         if "memory" in vm and "size" in vm["memory"]:
             vm_doc["memory"] = vm["memory"]["size"]
 
-        vm_doc["name_label"] = vm["name_label"]
+        vm_doc["name_label"] = ""
+        if "name_label" in vm_doc:
+            vm_doc["name_label"] = vm["name_label"]
 
         vm_doc["os_version"] = "unknown"
         if "os_version" in vm:
@@ -139,12 +144,14 @@ def add_vms_on_testdb(vms_data, host, group):
         if "power_state" in vm:
             vm_doc["state"] = vm["power_state"]
 
-        vm_doc["poolId"] = vm["$poolId"]
+        vm_doc["poolId"] = ""
+        if "$poolId" in vm:
+            vm_doc["poolId"] = vm["$poolId"]
         vm_doc["group"] = group
         vm_doc["host"] = host
         vm_doc["tags"] = {}
 
-        result["name_label"] = {}
+        result[vm_doc["name_label"]] = {}
         try:
             res = host_pool_helper.upsert_vm(doc=vm_doc)
             if not res:
@@ -154,8 +161,8 @@ def add_vms_on_testdb(vms_data, host, group):
             result["name_label"] = _get_result_failure(reason=f"Cannot add vm {vm_doc['name_label']} to host pool",
                                                        exception=e)
 
-        result["name_label"]["result"] = True
-        result["name_label"]["vm_doc"] = vm_doc
+        result[vm_doc["name_label"]]["result"] = True
+        result[vm_doc["name_label"]]["vm_doc"] = vm_doc
 
     return result
 
@@ -208,19 +215,22 @@ def add_host(host):
 
     label = host["label"]
     hostname = host["hostname"] if "hostname" in host else f'{label}.sc.couchbase.com'
+    group = host["group"]
     xen_orchestra_username = host["username"]
     xen_orchestra_password = host["password"]
 
     try:
         server_status = xen_orchestra_helper.get_server_status(label=label,
                                                                host=hostname)
-    except Exception as e:
-        if str(e) == f"Host with label {label} and host {hostname} not found":
+        if server_status:
             logger.critical(f"Host with label {label} and hostname {hostname} already exists in Xen orchestra")
             logger.critical(f"Deleting host with label {label} and hostname {hostname} from Xen orchestra")
             res = remove_host_from_xen_orchestra(host)
             if not res["result"]:
                 return _get_result_failure(reason=f"Cannot delete host from XenOrchestra : {res['reason']}")
+    except Exception as e:
+        if str(e) == f"Host with label {label} and host {hostname} not found":
+            pass
         else:
             return _get_result_failure(reason="Cannot fetch server status from XenOrchestra",
                                        exception=e)
@@ -263,17 +273,12 @@ def add_host(host):
     if not res["result"]:
         return _get_result_failure(reason=f"Cannot delete host from XenOrchestra : {res['reason']}")
 
-    if len(hosts_data) == 0:
-        result["adding_host_data"] = _get_result_failure(reason=f"Cannot find host from XenOrchestra : {hosts_data}")
-    elif len(hosts_data) > 0:
-        result["adding_host_data"] = _get_result_failure(reason=f"Found multiple hosts from XenOrchestra : {hosts_data}")
-    else:
-        result["adding_host_data"] = add_host_on_testdb(hosts_data[0])
+    result["adding_host_data"] = add_host_on_testdb(hosts_data, label, group, xen_orchestra_username, xen_orchestra_password)
 
     if len(vms_data) == 0:
         result["adding_vm_data"] = _get_result_failure(reason=f"Cannot find VMs from XenOrchestra : {hosts_data}")
     elif len(vms_data) > 0:
-        result["adding_vm_data"] = add_vms_on_testdb(vms_data)
+        result["adding_vm_data"] = add_vms_on_testdb(vms_data, label, group)
 
     return result
 
@@ -322,16 +327,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # main()
-    logging_conf_path = os.path.join(script_dir, "..", "..", "logging.conf")
-    logging.config.fileConfig(logging_conf_path)
-
-    data = {
-        # "hostname" : "",
-        "label" : "xcp-s103",
-        "group" : "server_pool",
-        "username" : "root",
-        "password" : "northscale!23",
-    }
-
-    add_host(data)
+    main()

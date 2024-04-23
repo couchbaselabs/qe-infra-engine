@@ -38,7 +38,7 @@ class RemoteXenOrchestraHelper(XenOrchestraHelper):
 
     def add_host(self, label, host, username, password):
         with self._lock:
-            command = self._get_add_host_command(label=label,
+            command = self.get_add_host_command(label=label,
                                             host=host,
                                             username=username,
                                             password=password)
@@ -54,7 +54,7 @@ class RemoteXenOrchestraHelper(XenOrchestraHelper):
     def remove_host(self, label, host):
         server_info = self.get_server_status(label, host)
         with self._lock:
-            command = self._get_remove_host_command(server_info['id'])
+            command = self.get_remove_host_command(server_info['id'])
             self.logger.info(f"Executing command on XenServer : {command}")
             output, error = self.remote_helper.execute_command(command)
         if len(error) > 0:
@@ -69,7 +69,7 @@ class RemoteXenOrchestraHelper(XenOrchestraHelper):
             current_time = datetime.datetime.now()
             timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
             output_file_path = f"/tmp/server_info_{timestamp_string}.json"
-            command = f'{self._get_servers_status_command()} > {output_file_path}'
+            command = f'{self.get_servers_status_command()} > {output_file_path}'
             self.logger.info(f"Running command {command}")
             _, error = self.remote_helper.execute_command(command)
             if len(error) > 0:
@@ -78,7 +78,7 @@ class RemoteXenOrchestraHelper(XenOrchestraHelper):
                 self.logger.error(msg)
                 raise Exception(msg)
 
-            local_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", f"tmp_{timestamp_string}")
+            local_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", f"tmp_{timestamp_string}")
             if not os.path.exists(local_dir_path):
                 self.logger.info(f"Creating directory {local_dir_path}")
                 try:
@@ -135,7 +135,7 @@ class RemoteXenOrchestraHelper(XenOrchestraHelper):
             current_time = datetime.datetime.now()
             timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
             output_file_path = f"/tmp/list_vms_{timestamp_string}.json"
-            command = f'{self._get_fetch_list_vms_command()} > {output_file_path}'
+            command = f'{self.get_fetch_list_vms_command()} > {output_file_path}'
             self.logger.info(f"Running command {command}")
 
             _, error = self.remote_helper.execute_command(command)
@@ -145,7 +145,7 @@ class RemoteXenOrchestraHelper(XenOrchestraHelper):
                 self.logger.error(msg)
                 raise Exception(msg)
 
-            local_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", f"tmp_{timestamp_string}")
+            local_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", f"tmp_{timestamp_string}")
             if not os.path.exists(local_dir_path):
                 self.logger.info(f"Creating directory {local_dir_path}")
                 try:
@@ -198,11 +198,11 @@ class RemoteXenOrchestraHelper(XenOrchestraHelper):
     def fetch_list_hosts(self, label, host):
         poolId = self.get_server_status(label, host)["poolId"]
 
-        with self.lock:
+        with self._lock:
             current_time = datetime.datetime.now()
             timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
             output_file_path = f"/tmp/list_hosts_{timestamp_string}.json"
-            command = f'{self._get_fetch_list_hosts_command()} > {output_file_path}'
+            command = f'{self.get_fetch_list_hosts_command()} > {output_file_path}'
 
             _, error = self.remote_helper.execute_command(command)
             if len(error) > 0:
@@ -211,7 +211,7 @@ class RemoteXenOrchestraHelper(XenOrchestraHelper):
                 self.logger.error(msg)
                 raise Exception(msg)
 
-            local_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", f"tmp_{timestamp_string}")
+            local_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", f"tmp_{timestamp_string}")
             if not os.path.exists(local_dir_path):
                 self.logger.info(f"Creating directory {local_dir_path}")
                 try:

@@ -42,27 +42,32 @@ class HostSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
 
     def upsert_host(self, doc):
         key = doc["name"]
-        return self.add_doc(client=self.host_connection,
-                            key=key,
-                            doc=doc,
-                            bucket_name=self.host_pool_bucket_name,
-                            scope=self.host_scope_name,
-                            collection=self.host_collection_name)
+        return self.upsert_doc(client=self.host_connection,
+                               key=key,
+                               doc=doc,
+                               bucket_name=self.host_pool_bucket_name,
+                               scope=self.host_scope_name,
+                               collection=self.host_collection_name)
 
     def upsert_vm(self, doc):
         key = doc["name_label"]
-        return self.add_doc(client=self.vm_connection,
-                            key=key,
-                            doc=doc,
-                            bucket_name=self.host_pool_bucket_name,
-                            scope=self.vm_scope_name,
-                            collection=self.vm_collection_name)
+        return self.upsert_doc(client=self.vm_connection,
+                               key=key,
+                               doc=doc,
+                               bucket_name=self.host_pool_bucket_name,
+                               scope=self.vm_scope_name,
+                               collection=self.vm_collection_name)
 
     def fetch_all_vms(self):
         return self.fetch_all_docs(client=self.vm_connection,
                                    bucket_name=self.host_pool_bucket_name,
                                    scope=self.vm_scope_name,
                                    collection=self.vm_collection_name)
+    
+    def fetch_vm(self, ipaddr):
+        query = f"SELECT * FROM `QE-host-pool`.`_default`.`vms` WHERE ANY v IN OBJECT_VALUES(addresses) SATISFIES v = '{ipaddr}' END OR mainIpAddress = '{ipaddr}';"
+        self.logger.info(f"Running query {query}")
+        return self.vm_connection.query(query, retries=5)
 
     def fetch_all_host(self):
         return self.fetch_all_docs(client=self.host_connection,
