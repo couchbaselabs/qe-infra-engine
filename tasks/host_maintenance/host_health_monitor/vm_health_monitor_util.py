@@ -12,6 +12,18 @@ def _get_result_failure(reason, exception=None):
     logger.error(result["reason"])
     return result
 
+try:
+    server_pool_helper = ServerPoolSDKHelper()
+    logger.info(f"Connection to Server Pool successful")
+except Exception as e:
+    _get_result_failure(reason="Cannot connect to Server Pool using SDK",
+                                exception=e)
+    
+query_result = server_pool_helper.fetch_all_nodes()
+nodes = []
+for row in query_result:
+    nodes.append(row["_default"])
+
 def check_vm_network(vm_doc):
     result = {}
     try:
@@ -90,20 +102,8 @@ def check_vms_in_server_pool(vm_doc):
         return _get_result_failure(reason="Cannot connect to Host Pool using SDK",
                                    exception=e)
 
-    try:
-        server_pool_helper = ServerPoolSDKHelper()
-        logger.info(f"Connection to Server Pool successful")
-    except Exception as e:
-        return _get_result_failure(reason="Cannot connect to Server Pool using SDK",
-                                   exception=e)
-
     addresses = set(vm_doc["addresses"].values())
     addresses.add(vm_doc["mainIpAddress"])
-
-    query_result = server_pool_helper.fetch_all_nodes()
-    nodes = []
-    for row in query_result:
-        nodes.append(row["_default"])
 
     ip_present = False
     for node in nodes:

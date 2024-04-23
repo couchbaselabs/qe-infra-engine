@@ -70,9 +70,12 @@ def fetch_vms(host):
         logger.error(result["reason"])
         return result
 
-    host_docs = [row[host_pool_helper.vm_collection_name] for row in query_result]
+    vm_docs = []
+    for row in query_result:
+        row[host_pool_helper.vm_collection_name]["doc_key"] = row["id"]
+        vm_docs.append(row[host_pool_helper.vm_collection_name])
     result["result"] = True
-    result["vm_docs"] = host_docs
+    result["vm_docs"] = vm_docs
     return result
 
 def fetch_hosts(group : list):
