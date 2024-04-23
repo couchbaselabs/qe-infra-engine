@@ -167,11 +167,11 @@ def fetch_and_monitor_health(host_tasks, vm_tasks, group):
     if not result_vm_tasks["result"]:
         return result_vm_tasks
 
-    result_host_docs = fetch_hosts(group, type="host")
+    result_host_docs = fetch_hosts(group)
     if not result_host_docs["result"]:
         return result_host_docs
 
-    return monitor_health_hosts_parallel(docs=result_host_docs["host_docs"],
+    return monitor_health_hosts_parallel(host_docs=result_host_docs["host_docs"],
                                          host_tasks=result_host_tasks["tasks_dic"],
                                          vm_tasks=result_vm_tasks["tasks_dic"],
                                          max_workers=750)

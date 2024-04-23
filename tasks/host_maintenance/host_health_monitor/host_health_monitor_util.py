@@ -116,7 +116,7 @@ def update_doc(doc : dict, vm_docs : list):
 
 ALL_TASKS_DIC = {
     "update doc" : update_doc,
-    "allocated memory utilization check" : check_for_mem_usage,
-    "allocated cpu utilization check" : check_for_cpu_usage,
-    "check vms state" : check_for_vms_state
+    # "allocated memory utilization check" : check_for_mem_usage,
+    # "allocated cpu utilization check" : check_for_cpu_usage,
+    # "check vms state" : check_for_vms_state
 }

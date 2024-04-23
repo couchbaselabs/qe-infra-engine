@@ -148,10 +148,10 @@ def add_vms_on_testdb(vms_data, host, group):
         try:
             res = host_pool_helper.upsert_vm(doc=vm_doc)
             if not res:
-                result["name_label"] = _get_result_failure(reason=f"Cannot add vm {vm_doc["name_label"]} to host pool")
-            logger.info(f"Document for vm {vm_doc["name_label"]} added to host pool successfuly")
+                result["name_label"] = _get_result_failure(reason=f"Cannot add vm {vm_doc['name_label']} to host pool")
+            logger.info(f"Document for vm {vm_doc['name_label']} added to host pool successfuly")
         except Exception as e:
-            result["name_label"] = _get_result_failure(reason=f"Cannot add vm {vm_doc["name_label"]} to host pool",
+            result["name_label"] = _get_result_failure(reason=f"Cannot add vm {vm_doc['name_label']} to host pool",
                                                        exception=e)
 
         result["name_label"]["result"] = True
@@ -184,7 +184,6 @@ def remove_host_from_xen_orchestra(host):
     return result
 
 def add_host(host):
-    logger.critical(f"Host number {host['count']}")
     result = {}
     required_fields = ["username", "password", "group"]
     for field in required_fields:
@@ -221,7 +220,7 @@ def add_host(host):
             logger.critical(f"Deleting host with label {label} and hostname {hostname} from Xen orchestra")
             res = remove_host_from_xen_orchestra(host)
             if not res["result"]:
-                return _get_result_failure(reason=f"Cannot delete host from XenOrchestra : {res["reason"]}")
+                return _get_result_failure(reason=f"Cannot delete host from XenOrchestra : {res['reason']}")
         else:
             return _get_result_failure(reason="Cannot fetch server status from XenOrchestra",
                                        exception=e)
@@ -262,7 +261,7 @@ def add_host(host):
 
     res = remove_host_from_xen_orchestra(host)
     if not res["result"]:
-        return _get_result_failure(reason=f"Cannot delete host from XenOrchestra : {res["reason"]}")
+        return _get_result_failure(reason=f"Cannot delete host from XenOrchestra : {res['reason']}")
 
     if len(hosts_data) == 0:
         result["adding_host_data"] = _get_result_failure(reason=f"Cannot find host from XenOrchestra : {hosts_data}")
@@ -299,13 +298,10 @@ def main():
 
     logger.info(f"The number of hosts to add: {len(hosts_data)}")
 
-    i = 1
     for host in hosts_data:
         if "label" not in host:
             logger.error("Field label missing from one of the nodes")
             return
-        host["count"] = i
-        i+=1
 
     results = add_hosts_parallel(hosts_data)
 

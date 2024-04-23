@@ -41,10 +41,10 @@ def check_vm_network(vm_doc):
     try:
         res = host_sdk_helper.upsert_vm(vm_doc)
         if not res:
-            return _get_result_failure(reason=f"Cannot upsert vm {vm_doc["name_label"]} with network-consistency checks to host pool")
-        logger.info(f"Document for vm {vm_doc["name_label"]} with network-consistency checks upserted to host pool successfuly")
+            return _get_result_failure(reason=f"Cannot upsert vm {vm_doc['name_label']} with network-consistency checks to host pool")
+        logger.info(f"Document for vm {vm_doc['name_label']} with network-consistency checks upserted to host pool successfuly")
     except Exception as e:
-        return _get_result_failure(reason=f"Cannot upsert vm {vm_doc["name_label"]} with network-consistency checks to host pool",
+        return _get_result_failure(reason=f"Cannot upsert vm {vm_doc['name_label']} with network-consistency checks to host pool",
                                    exception=e)
 
     result["result"] = True
@@ -71,10 +71,10 @@ def check_vm_os_version(vm_doc):
     try:
         res = host_sdk_helper.upsert_vm(vm_doc)
         if not res:
-            return _get_result_failure(reason=f"Cannot upsert vm {vm_doc["name_label"]} with os-version-consistency checks to host pool")
-        logger.info(f"Document for vm {vm_doc["name_label"]} with os-version-consistency checks upserted to host pool successfuly")
+            return _get_result_failure(reason=f"Cannot upsert vm {vm_doc['name_label']} with os-version-consistency checks to host pool")
+        logger.info(f"Document for vm {vm_doc['name_label']} with os-version-consistency checks upserted to host pool successfuly")
     except Exception as e:
-        return _get_result_failure(reason=f"Cannot upsert vm {vm_doc["name_label"]} with os-version-consistency checks to host pool",
+        return _get_result_failure(reason=f"Cannot upsert vm {vm_doc['name_label']} with os-version-consistency checks to host pool",
                                    exception=e)
 
     result["result"] = True
@@ -116,10 +116,10 @@ def check_vms_in_server_pool(vm_doc):
     try:
         res = host_sdk_helper.upsert_vm(vm_doc)
         if not res:
-            return _get_result_failure(reason=f"Cannot upsert vm {vm_doc["name_label"]} with server-pool-consistency checks to host pool")
-        logger.info(f"Document for vm {vm_doc["name_label"]} with server-pool-consistency checks upserted to host pool successfuly")
+            return _get_result_failure(reason=f"Cannot upsert vm {vm_doc['name_label']} with server-pool-consistency checks to host pool")
+        logger.info(f"Document for vm {vm_doc['name_label']} with server-pool-consistency checks upserted to host pool successfuly")
     except Exception as e:
-        return _get_result_failure(reason=f"Cannot upsert vm {vm_doc["name_label"]} with server-pool-consistency checks to host pool",
+        return _get_result_failure(reason=f"Cannot upsert vm {vm_doc['name_label']} with server-pool-consistency checks to host pool",
                                    exception=e)
 
     result["result"] = True
@@ -165,10 +165,10 @@ def check_vm_field_consistency(vm_doc):
     try:
         res = host_sdk_helper.upsert_vm(vm_doc)
         if not res:
-            return _get_result_failure(reason=f"Cannot upsert vm {vm_doc["name_label"]} with field-consistency checks to host pool")
-        logger.info(f"Document for vm {vm_doc["name_label"]} with field-consistency checks upserted to host pool successfuly")
+            return _get_result_failure(reason=f"Cannot upsert vm {vm_doc['name_label']} with field-consistency checks to host pool")
+        logger.info(f"Document for vm {vm_doc['name_label']} with field-consistency checks upserted to host pool successfuly")
     except Exception as e:
-        return _get_result_failure(reason=f"Cannot upsert vm {vm_doc["name_label"]} with field-consistency checks to host pool",
+        return _get_result_failure(reason=f"Cannot upsert vm {vm_doc['name_label']} with field-consistency checks to host pool",
                                    exception=e)
 
     result["result"] = True
@@ -176,8 +176,8 @@ def check_vm_field_consistency(vm_doc):
     return result
 
 ALL_TASKS_DIC = {
-    "check vm os version" : check_vm_os_version,
-    "check vm network" : check_vm_network,
-    "vm server pool consistency check" : check_vms_in_server_pool,
-    "vm field consistency check" : check_vm_field_consistency,
+    # "check vm os version" : check_vm_os_version,
+    # "check vm network" : check_vm_network,
+    # "vm server pool consistency check" : check_vms_in_server_pool,
+    # "vm field consistency check" : check_vm_field_consistency,
 }

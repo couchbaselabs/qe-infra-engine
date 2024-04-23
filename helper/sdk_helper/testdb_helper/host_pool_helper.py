@@ -76,11 +76,11 @@ class HostSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
         return self.vm_connection.query(query, retries=5)
     
     def fetch_hosts_by_group(self, group):
-        query = f"SELECT * FROM `{self.host_pool_bucket_name}`.`{self.host_scope_name}`.`{self.host_scope_name}` WHERE ANY v IN group SATISFIES v IN {group} END;"
+        query = f"SELECT META().id,*  FROM `{self.host_pool_bucket_name}`.`{self.host_scope_name}`.`{self.host_collection_name}` WHERE `group` IN {group}"
         self.logger.info(f"Running query {query}")
         return self.host_connection.query(query, retries=5)
 
     def fetch_vms_by_group(self, group):
-        query = f"SELECT * FROM `{self.host_pool_bucket_name}`.`{self.vm_scope_name}`.`{self.vm_collection_name}` WHERE ANY v IN group SATISFIES v IN {group} END;"
+        query = f"SELECT META().id,* FROM `{self.host_pool_bucket_name}`.`{self.vm_scope_name}`.`{self.vm_collection_name}` WHERE `group` IN {group}"
         self.logger.info(f"Running query {query}")
         return self.vm_connection.query(query, retries=5)
