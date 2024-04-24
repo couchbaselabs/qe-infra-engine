@@ -17,7 +17,7 @@ import concurrent
 import datetime
 import json
 from helper.sdk_helper.testdb_helper.host_pool_helper import HostSDKHelper
-import tasks.host_maintenance.add_hosts as add_hosts
+import tasks.host_maintenance.host_operations.add_hosts as add_hosts
 
 logger = logging.getLogger("tasks")
 
