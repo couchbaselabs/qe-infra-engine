@@ -28,7 +28,7 @@ def check_for_vms_state(doc : dict, vm_docs : list):
         doc["tags"]["vm_states"][vm["state"]] += 1
 
     try:
-        res = host_pool_helper.upsert_host(doc)
+        res = host_pool_helper.update_host(doc)
         if not res:
             return _get_result_failure(reason=f"Cannot upsert host {host} with halted-vm checks to host pool")
         logger.info(f"Document for host {host} with halted-vm checks upserted to host pool successfuly")
@@ -65,7 +65,7 @@ def check_for_cpu_usage(doc : dict, vm_docs : list):
         doc["tags"]["allocated_cpu_utilization"] = 0
 
     try:
-        res = host_pool_helper.upsert_host(doc)
+        res = host_pool_helper.update_host(doc)
         if not res:
             return _get_result_failure(reason=f"Cannot upsert host {host} with cpu-utilization checks to host pool")
         logger.info(f"Document for host {host} with cpu-utilization checks upserted to host pool successfuly")
@@ -100,7 +100,7 @@ def check_for_mem_usage(doc : dict, vm_docs : list):
 
 
     try:
-        res = host_pool_helper.upsert_host(doc)
+        res = host_pool_helper.update_host(doc)
         if not res:
             return _get_result_failure(reason=f"Cannot upsert host {host} with memory-utilization checks to host pool")
         logger.info(f"Document for host {host} with memory-utilization checks upserted to host pool successfuly")

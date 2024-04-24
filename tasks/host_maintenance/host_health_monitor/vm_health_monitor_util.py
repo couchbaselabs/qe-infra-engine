@@ -39,7 +39,7 @@ def check_vm_network(vm_doc):
             vm_doc["tags"]["mainIpAddress_available"] = True
 
     try:
-        res = host_sdk_helper.upsert_vm(vm_doc)
+        res = host_sdk_helper.update_vm(vm_doc)
         if not res:
             return _get_result_failure(reason=f"Cannot upsert vm {vm_doc['name_label']} with network-consistency checks to host pool")
         logger.info(f"Document for vm {vm_doc['name_label']} with network-consistency checks upserted to host pool successfuly")
@@ -69,7 +69,7 @@ def check_vm_os_version(vm_doc):
         vm_doc["tags"]["os_version_available"] = True
 
     try:
-        res = host_sdk_helper.upsert_vm(vm_doc)
+        res = host_sdk_helper.update_vm(vm_doc)
         if not res:
             return _get_result_failure(reason=f"Cannot upsert vm {vm_doc['name_label']} with os-version-consistency checks to host pool")
         logger.info(f"Document for vm {vm_doc['name_label']} with os-version-consistency checks upserted to host pool successfuly")
@@ -114,7 +114,7 @@ def check_vms_in_server_pool(vm_doc):
     vm_doc["tags"]["vm_in_server_pool"] = ip_present
 
     try:
-        res = host_sdk_helper.upsert_vm(vm_doc)
+        res = host_sdk_helper.update_vm(vm_doc)
         if not res:
             return _get_result_failure(reason=f"Cannot upsert vm {vm_doc['name_label']} with server-pool-consistency checks to host pool")
         logger.info(f"Document for vm {vm_doc['name_label']} with server-pool-consistency checks upserted to host pool successfuly")
@@ -163,7 +163,7 @@ def check_vm_field_consistency(vm_doc):
             vm_doc["tags"]["field_consistency"]["fields_extra"] = fields_extra
 
     try:
-        res = host_sdk_helper.upsert_vm(vm_doc)
+        res = host_sdk_helper.update_vm(vm_doc)
         if not res:
             return _get_result_failure(reason=f"Cannot upsert vm {vm_doc['name_label']} with field-consistency checks to host pool")
         logger.info(f"Document for vm {vm_doc['name_label']} with field-consistency checks upserted to host pool successfuly")
