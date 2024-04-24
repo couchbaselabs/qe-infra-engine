@@ -40,7 +40,7 @@ class HostSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
 
                     self._initialized.set()
 
-    def upsert_host(self, doc):
+    def update_host(self, doc):
         key = doc["name"]
         return self.upsert_doc(client=self.host_connection,
                                key=key,
@@ -49,7 +49,7 @@ class HostSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
                                scope=self.host_scope_name,
                                collection=self.host_collection_name)
 
-    def upsert_vm(self, doc):
+    def update_vm(self, doc):
         key = doc["name_label"]
         return self.upsert_doc(client=self.vm_connection,
                                key=key,
