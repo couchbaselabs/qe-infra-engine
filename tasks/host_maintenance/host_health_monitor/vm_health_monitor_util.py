@@ -100,16 +100,16 @@ def check_vms_in_server_pool(vm_doc):
     addresses = set(vm_doc["addresses"].values())
     addresses.add(vm_doc["mainIpAddress"])
 
-    query_result = server_pool_helper.fetch_all_nodes()
+    query_result = server_pool_helper.fetch_node_by_ipaddr(ipaddr=list(addresses))
     nodes_ipaddrs = []
     for row in query_result:
         nodes_ipaddrs.append(row["_default"]["ipaddr"])
 
-    ip_present = False
-    for address in addresses:
-        if address in nodes_ipaddrs:
-           ip_present = True
-           break 
+    ip_present = True
+    if len(nodes_ipaddrs) == 0:
+        ip_present = False
+    else:
+        ip_present = True
 
     vm_doc["tags"]["vm_in_server_pool"] = ip_present
 
