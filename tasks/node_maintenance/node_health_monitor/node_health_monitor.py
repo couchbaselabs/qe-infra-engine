@@ -13,7 +13,7 @@ for project_path in project_paths:
 
 from helper.sdk_helper.testdb_helper.server_pool_helper import ServerPoolSDKHelper
 from util.ssh_util.node_infra_helper.remote_connection_factory import RemoteConnectionObjectFactory
-import tasks.node_maintainance.node_health_monitor.node_health_monitor_utils as node_health_monitor_utils
+import tasks.node_maintenance.node_health_monitor.node_health_monitor_utils as node_health_monitor_utils
 import logging.config
 import concurrent
 import datetime
