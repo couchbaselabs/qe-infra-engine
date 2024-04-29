@@ -1,0 +1,48 @@
+{
+    "tasks": {
+      "add_nodes_task": {
+        "path": "/Users/raghavsk/Desktop/qe-infra-engine/tasks/node_maintenance/node_operations/add_nodes.py",
+        "params": {
+          "arg1": {
+            "flags": [
+              "--data",
+              "-d"
+            ],
+            "type": [
+              "str"
+            ],
+            "help": [
+              "The data of all VMs"
+            ]
+          }
+        }
+      },
+      "node_health_monitor_task": {
+        "path": "/Users/raghavsk/Desktop/qe-infra-engine/tasks/node_maintenance/node_health_monitor/node_health_monitor.py",
+        "params": {
+          "arg1": {
+            "flags": [
+              "--poolId"
+            ],
+            "type": [
+              "str"
+            ],
+            "help": [
+              "The poolId"
+            ]
+          },
+          "arg2": {
+            "flags": [
+              "--tasks"
+            ],
+            "type": [
+              "str"
+            ],
+            "help": [
+              "The tasks"
+            ]
+          }
+        }
+      }
+    }
+  }
