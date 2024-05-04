@@ -32,7 +32,6 @@ class RestClient:
 
         if method not in RestMethods.__members__ and not isinstance(method, RestMethods) :
             error_msg = "The method passed is illegal"
-            print(error_msg)
             self.logger.error(error_msg)
             raise ValueError(error_msg)
 
@@ -48,21 +47,21 @@ class RestClient:
 
         for retry in range(1, retries+1):
             try:
-                response =self.session.request(method=method,
-                                               url=url,
-                                               data=params,
-                                               headers=header,
-                                               verify=verify)
+                response = self.session.request(method=method,
+                                                url=url,
+                                                data=params,
+                                                headers=header,
+                                                verify=verify)
                 response.raise_for_status()
                 try:
                     content = response.json()
                     return response.status_code, content
                 except ValueError as e:
                     self.logger.error(f"Parsing content to json failed {e}")
-                    raise e
+                    return response.status_code, response.content
             except Exception as e:
                 self.logger.error(f"Error trying to connect to {url} : {e}")
-                if retry == retries - 1:
+                if retry == retries:
                         raise e
 
 
