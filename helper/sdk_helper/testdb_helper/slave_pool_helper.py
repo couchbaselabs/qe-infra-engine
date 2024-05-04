@@ -48,7 +48,18 @@ class SlavePoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
                                bucket_name=self.server_pool_bucket_name,
                                scope=self.server_pool_scope,
                                collection=self.server_pool_collection)
+    
+    def delete_slave(self, ipaddr):
+        key = ipaddr
+        return self.delete_doc(client=self.slave_doc_connection,
+                               key=key,
+                               bucket_name=self.slave_pool_bucket_name,
+                               scope=self.slave_doc_scope_name,
+                               collection=self.slave_doc_collection_name)
 
+    def get_slave(self, ipaddr):
+        return self.get_doc(client=self.slave_doc_connection,
+                            key=ipaddr)
 
 
 
