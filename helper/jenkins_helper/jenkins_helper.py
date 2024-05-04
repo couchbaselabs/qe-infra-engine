@@ -64,7 +64,13 @@ class JenkinsHelper:
         if status != 200:
             raise Exception(f"Request to {self.url+endpoint} failed with status {status} : {response}")
         return status, response
-
+    
+    def disconnect_slave(self, slave_name, message):
+        endpoint = f"/computer/{slave_name}/doDisconnect?offlineMessage={message}"
+        status, response = self.rest_client.request(endpoint)
+        if status != 200:
+            raise Exception(f"Request to {self.url+endpoint} failed with status {status} : {response}")
+        return status, response
 class SingeltonMetaClass(type):
     _instances = {}
     _cls_lock = threading.Lock()
