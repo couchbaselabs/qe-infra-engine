@@ -56,5 +56,6 @@ SLAVE_TEMPLATE = {
     "tags" : {},
     "mac_address": "",
     "origin": "",
-    "jenkins_url" : ""
+    "name_label" : "",
+    "jenkins_host" : ""
 }
