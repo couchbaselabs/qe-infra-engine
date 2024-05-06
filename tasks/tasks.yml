@@ -16,7 +16,7 @@ node_health_monitor_task :
       help: "The tasks"
       help1 : 1
 add_nodes_task:
-  path : /Users/raghavsk/Desktop/qe-infra-engine/tasks/node_maintenance/node_operations/add_nodes.py
+  path : tasks/node_maintenance/node_operations/add_nodes.py
   class : AddNodesTask
   params :
     data:
