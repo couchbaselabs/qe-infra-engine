@@ -1,16 +1,3 @@
-import sys
-import os
-
-# Adding project path into the sys paths for scanning all the modules
-script_dir = os.path.dirname(os.path.realpath(__file__))
-project_paths = [
-    os.path.join(script_dir, "..", "..", ".."),
-    os.path.join(script_dir, "..", "..", "..", "util", "ssh_util")
-]
-for project_path in project_paths:
-    if project_path not in sys.path:
-        sys.path.append(project_path)
-
 import time
 import paramiko, paramiko.ssh_exception
 import socket
@@ -659,12 +646,3 @@ class NodeHealthMonitorTask(Task):
                 return self.result_json
             else:
                 return self.exception
-
-import logging.config
-logging_conf_path = os.path.join(script_dir, "..", "..", "..", "logging.conf")
-logging.config.fileConfig(logging_conf_path)
-params = {"poolId" : ["testing_qe_infra"]}
-task = NodeHealthMonitorTask(params)
-task.execute()
-json = task.generate_json_result()
-logging.info(json)
