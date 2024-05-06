@@ -1,23 +1,17 @@
-add_nodes_task :
-      path : /Users/raghavsk/Desktop/qe-infra-engine/tasks/node_maintenance/node_operations/add_nodes.py
-      params :
-        arg1: 
-          flags:
-            - --data
-            - -d
-          type: str
-          help: The data of all VMs
 node_health_monitor_task : 
-      path : /Users/raghavsk/Desktop/qe-infra-engine/tasks/node_maintenance/node_health_monitor/node_health_monitor.py
+      path : tasks/node_maintenance/node_health_monitor/node_health_monitor.py
+      class: NodeHealthMonitorTask
       params : 
-        arg1:
+        poolId:
           flags:
             - --poolId
           type: str
+          nargs: '+'
           help: "The poolId"
-        arg2:
+        tasks:
           flags:
             - --tasks
           type: str
+          nargs: '+'
           help: "The tasks"
           help1 : 1

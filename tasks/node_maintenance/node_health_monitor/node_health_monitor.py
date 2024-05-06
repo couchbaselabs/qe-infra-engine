@@ -565,6 +565,8 @@ class NodeHealthMonitorTask(Task):
 
         if "poolId" not in params:
             self.poolId = []
+        elif params["poolId"] is None:
+            self.poolId = []
         elif not isinstance(params["poolId"], list):
             exception = ValueError(f"poolId param has to be a list : {params['poolId']}")
             self.set_exception(exception)
@@ -573,6 +575,8 @@ class NodeHealthMonitorTask(Task):
 
         all_sub_tasks = self._get_sub_task_names()
         if "tasks" not in params:
+            self.sub_task_names = all_sub_tasks
+        elif params["tasks"] is None:
             self.sub_task_names = all_sub_tasks
         elif not isinstance(params["tasks"], list):
             exception = ValueError(f"tasks param has to be a list : {params['tasks']}")
