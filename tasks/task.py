@@ -53,7 +53,7 @@ class Task:
             self.logger.warning(f"{subtask.sub_task_name}_{subtask.id} has not run properly and has ended abruptly : {e}")
         return result
 
-    def generate_json_result(self):
+    def generate_json_result(self, timeout=3600):
         self.set_exception(NotImplementedError("The generate json result for the task is not implemented"))
 
     def execute(self):

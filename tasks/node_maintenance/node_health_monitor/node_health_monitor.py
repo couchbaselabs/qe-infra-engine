@@ -47,7 +47,7 @@ class NodeHealthMonitorTask(Task):
                     self.result_json["connection_check"] = self.node_doc["tags"]["connection_check"]
                     return self.result_json
                 else:
-                    return self.exception
+                    return str(self.exception)
 
         def execute_sub_task(self):
             self.start_sub_task()
@@ -116,7 +116,7 @@ class NodeHealthMonitorTask(Task):
                         self.result_json["connection_check_err"] = self.node_doc["tags"]["connection_check_err"]
                     return self.result_json
                 else:
-                    return self.exception
+                    return str(self.exception)
 
         def execute_sub_task(self):
             self.start_sub_task()
@@ -247,7 +247,7 @@ class NodeHealthMonitorTask(Task):
                     self.result_json["field_consistency"] = self.node_doc["tags"]["field_consistency"]
                     return self.result_json
                 else:
-                    return self.exception
+                    return str(self.exception)
 
         def execute_sub_task(self):
             self.start_sub_task()
@@ -333,7 +333,7 @@ class NodeHealthMonitorTask(Task):
                     self.result_json["os_node_match"] = self.node_doc["tags"]["os_node_check"]
                     return self.result_json
                 else:
-                    return self.exception
+                    return str(self.exception)
 
         def execute_sub_task(self):
             self.start_sub_task()
@@ -458,7 +458,7 @@ class NodeHealthMonitorTask(Task):
                         self.result_json["os_version_host_pool"] = self.node_doc["tags"]["os_version_host_pool"]
                     return self.result_json
                 else:
-                    return self.exception
+                    return str(self.exception)
 
         def execute_sub_task(self):
             self.start_sub_task()
@@ -649,4 +649,4 @@ class NodeHealthMonitorTask(Task):
                     self.result_json[sub_task.node_doc["ipaddr"]][sub_task.sub_task_name] = sub_task.generate_json_result()
                 return self.result_json
             else:
-                return self.exception
+                return str(self.exception)

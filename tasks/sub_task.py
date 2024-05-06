@@ -39,5 +39,5 @@ class SubTask:
     def execute_sub_task(self):
         self.set_exception(NotImplementedError("The execute sub task for the sub task is not implemented"))
 
-    def generate_json_result(self):
+    def generate_json_result(self, timeout=3600):
         self.set_exception(NotImplementedError("The generate json result for the sub task is not implemented"))
