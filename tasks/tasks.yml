@@ -1,17 +1,26 @@
 node_health_monitor_task : 
-      path : tasks/node_maintenance/node_health_monitor/node_health_monitor.py
-      class: NodeHealthMonitorTask
-      params : 
-        poolId:
-          flags:
-            - --poolId
-          type: str
-          nargs: '+'
-          help: "The poolId"
-        tasks:
-          flags:
-            - --tasks
-          type: str
-          nargs: '+'
-          help: "The tasks"
-          help1 : 1
+  path : tasks/node_maintenance/node_health_monitor/node_health_monitor.py
+  class: NodeHealthMonitorTask
+  params : 
+    poolId:
+      flags:
+        - --poolId
+      type: str
+      nargs: '+'
+      help: "The poolId"
+    tasks:
+      flags:
+        - --tasks
+      type: str
+      nargs: '+'
+      help: "The tasks"
+      help1 : 1
+add_nodes_task:
+  path : /Users/raghavsk/Desktop/qe-infra-engine/tasks/node_maintenance/node_operations/add_nodes.py
+  class : AddNodesTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of nodes to be added to the server-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of nodes"

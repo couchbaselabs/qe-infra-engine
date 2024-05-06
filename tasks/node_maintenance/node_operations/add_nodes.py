@@ -1,193 +1,181 @@
-import sys
-import os
-
-# Adding project path into the sys paths for scanning all the modules
-script_dir = os.path.dirname(os.path.realpath(__file__))
-project_paths = [
-    os.path.join(script_dir, "..", "..", ".."),
-    os.path.join(script_dir, "..", "..", "..", "util", "ssh_util")
-]
-for project_path in project_paths:
-    if project_path not in sys.path:
-        sys.path.append(project_path)
-
-import logging.config
-import argparse
-from constants.doc_templates import NODE_TEMPLATE
 import copy
-import concurrent
-import datetime
-import json
+import time
+from tasks.task import Task
+from tasks.sub_task import SubTask
+from constants.task_states import SubTaskStates, TaskStates
 from helper.sdk_helper.testdb_helper.server_pool_helper import ServerPoolSDKHelper
 from util.ssh_util.node_infra_helper.remote_connection_factory import RemoteConnectionObjectFactory
+from constants.doc_templates import NODE_TEMPLATE
 
-logger = logging.getLogger("tasks")
+class AddNodesTask(Task):
 
-def add_nodes_parallel(node_data, max_workers=None):
-    if not max_workers:
-        num_cores = os.cpu_count()
-        max_workers = num_cores if num_cores is not None else 10
+    class AddNodeSubTask(SubTask):
+        def __init__(self, params:dict):
+            """
+            Initialize a AddNodeSubTask with the given params.
+            Args:
+            params (dict): The dictionary with the following fields
+                Valid keys:
+                    - node (dict) : The node details in dict
+            """
+            sub_task_name = AddNodesTask.AddNodeSubTask.__name__
+            super().__init__(sub_task_name)
+            if "node" not in params:
+                self.set_exception(ValueError("Invalid arguments passed"))
+            self.node = params["node"]
+            if "ipaddr" not in self.node:
+                self.set_exception(ValueError(f"ipaddr key is missing for the node {self.node}"))
+            required_fields = ["ssh_username", "ssh_password", "vm_name", "poolId", "origin"]
+            for field in required_fields:
+                if field not in self.node:
+                    exception = f"Field {field} not present for node {self.node['ipaddr']}"
+                    self.set_exception(exception)
 
-    final_result = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(add_node, node): node for node in node_data}
-        for future in concurrent.futures.as_completed(futures):
-            node = futures[future]
-            result = future.result()
-            final_result[node["ipaddr"]] = result
-            logger.critical(f"Deleting helper for remote {node['ipaddr']}")
-            RemoteConnectionObjectFactory.delete_helper(ipaddr=node["ipaddr"])
+        def generate_json_result(self, timeout=3600):
+            start_time = time.time()
+            while time.time() - start_time < timeout:
+                if self.state != SubTaskStates.COMPLETED:
+                    time.sleep(10)
+                    continue
+                if self.result:
+                    self.result_json = {}
+                    self.result_json["init_node_res"] = self.result_init_node
+                    self.result_json["node_doc"] = self.doc
+                    return self.result_json
+                else:
+                    return str(self.exception)
+        
+        def execute_sub_task(self):
+            self.start_sub_task()
+
+            ipaddr = self.node['ipaddr']
+            ssh_username = self.node['ssh_username']
+            ssh_password = self.node['ssh_password']
+
+            try:
+                server_pool_helper = ServerPoolSDKHelper()
+                self.logger.info(f"Connection to Server Pool successful")
+            except Exception as e:
+                exception = f"Cannot connect to Server Pool using SDK : {e}"
+                self.set_exception(exception)
+
+            try:
+                remote_connection_helper = RemoteConnectionObjectFactory.fetch_helper(ipaddr=ipaddr,
+                                                                                      ssh_username=ssh_username,
+                                                                                      ssh_password=ssh_password)
+                self.logger.info(f"Connection to node {self.node['ipaddr']} successful")
+            except Exception as e:
+                exception = f"Cannot connect to node {self.node['ipaddr']} : {e}"
+                self.set_exception(exception)
+
+            try:
+                mac_address = remote_connection_helper.find_mac_address()
+            except Exception as e:
+                exception = f"Could not find mac adddress for node {ipaddr} : {e}"
+                self.set_exception(exception)
+
+            try:
+                memory = remote_connection_helper.find_memory_total()
+            except Exception as e:
+                exception = f"Could not find total memory for node {ipaddr} : {e}"
+                self.set_exception(exception)
+
+            try:
+                short_os, os_version = remote_connection_helper.find_os_version()
+            except Exception as e:
+                exception = f"Could not find os version for node {ipaddr} : {e}"
+                self.set_exception(exception)
+
+            try:
+                self.result_init_node = remote_connection_helper.initialize_node()
+                self.logger.info(f"Initialization for node {self.node['ipaddr']} completed successfuly")
+            except Exception as e:
+                exception = f"Cannot Initialize node {self.node['ipaddr']}  : {e}"
+                self.set_exception(exception)
+
+            doc = copy.deepcopy(NODE_TEMPLATE)
+
+            doc['ipaddr'] = self.node['ipaddr']
+            doc["mac_address"] = mac_address
+            doc["vm_name"] = self.node["vm_name"]
+            doc["memory"] = memory
+            doc["origin"] = self.node["origin"]
+            doc["os"] = short_os
+            doc["os_version"] = os_version
+            doc["poolId"] = self.node["poolId"]
+            doc["prevUser"] = ""
+            doc["username"] = ""
+            doc["state"] = "available"
+            doc["tags"] = {}
+
+            self.doc = doc
+
+            try:
+                res = server_pool_helper.upsert_node_to_server_pool(self.doc)
+                if not res:
+                    exception = f"Cannot add node {ipaddr} into server pool"
+                    self.set_exception(exception)
+
+                self.logger.info(f"Document for node {ipaddr} added to server pool successfuly")
+
+            except Exception as e:
+                exception = f"Cannot add node {ipaddr} into server pool : {e}"
+                self.set_exception(exception)
+
+            self.complete_sub_task(result=True)
+        
+    def __init__(self, params, max_workers=None):
+        """
+            Initialize a AddNodesTask with the given params.
+            Args:
+            params (dict): The dictionary with the following fields
+                Valid keys:
+                    - data (list) : List of nodes which has to be added to server-pool
+                        Each node is a dictionary with many fields
+        """
+        task_name = AddNodesTask.__name__
+        if max_workers is None:
+            max_workers = 100
+        super().__init__(task_name, max_workers)
+
+        if "data" not in params or params["data"] is None:
+            exception = ValueError(f"Data is not present to add to server-pool")
+            self.set_exception(exception)
+        elif not isinstance(params["data"], list):
+            exception = ValueError(f"data param has to be a list : {params['data']}")
+            self.set_exception(exception)
+        else:
+            self.data = params["data"]
+
+        for node in self.data:
+            if "ipaddr" not in node:
+                exception = ValueError(f"ipaddr missing from node : {node}")
+                self.set_exception(exception)
+
+    def generate_json_result(self, timeout=3600):
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            if self.state != TaskStates.COMPLETED:
+                time.sleep(10)
+                continue
+            if self.result:
+                self.result_json = {}
+                for sub_task in self.subtasks:
+                    if sub_task.doc["ipaddr"] not in self.result_json:
+                        self.result_json[sub_task.doc["ipaddr"]] = {}
+                    self.result_json[sub_task.doc["ipaddr"]] = sub_task.generate_json_result()
+                return self.result_json
+            else:
+                return str(self.exception)
     
-    return final_result
-
-def add_node(node):
-    result = {}
-    required_fields = ["ssh_username", "ssh_password", "vm_name", "poolId", "origin"]
-    for field in required_fields:
-        if field not in node:
-            result["result"] = False
-            result["reason"] = f"Field {field} not present for node {node['ipaddr']}"
-            logger.error(result["reason"])
-            return result
-    
-    logger.info(f"All required fields present for node {node['ipaddr']}")
-
-    ipaddr = node['ipaddr']
-    ssh_username = node['ssh_username']
-    ssh_password = node['ssh_password']
-
-    try:
-        server_pool_helper = ServerPoolSDKHelper()
-        logger.info(f"Connection to Server Pool successful")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot connect to Server Pool using SDK : {e}"
-        logger.error(result["reason"])
-        return result
-
-    try:
-        remote_connection_helper = RemoteConnectionObjectFactory.fetch_helper(ipaddr=ipaddr,
-                                                                              ssh_username=ssh_username,
-                                                                              ssh_password=ssh_password)
-        logger.info(f"Connection to node {node['ipaddr']} successful")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot connect to IP : {e}"
-        logger.error(result["reason"])
-        return result
-
-    try:
-        mac_address = remote_connection_helper.find_mac_address()
-        logger.info(f"Mac address for node {node['ipaddr']} found successfuly")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot find Mac address for node {node['ipaddr']} : {e}"
-        logger.error(result["reason"])
-        return result
-    
-    try:
-        memory = remote_connection_helper.find_memory_total()
-        logger.info(f"Total Memory for node {node['ipaddr']} found successfuly")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot find Total memory for node {node['ipaddr']} : {e}"
-        logger.error(result["reason"])
-        return result
-    
-    try:
-        short_os, os_version = remote_connection_helper.find_os_version()
-        logger.info(f"Operating System for node {node['ipaddr']} found successfuly")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot find OS version for node {node['ipaddr']} : {e}"
-        logger.error(result["reason"])
-        return result
-    
-    try:
-        result_init_node = remote_connection_helper.initialize_node()
-        logger.info(f"Initialization for node {node['ipaddr']} completed successfuly")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot Initialize node {node['ipaddr']}  : {e}"
-        logger.error(result["reason"])
-        return result
-
-    doc = copy.deepcopy(NODE_TEMPLATE)
-
-    doc['ipaddr'] = node['ipaddr']
-    doc["mac_address"] = mac_address
-    doc["vm_name"] = node["vm_name"]
-    doc["memory"] = memory
-    doc["origin"] = node["origin"]
-    doc["os"] = short_os
-    doc["os_version"] = os_version
-    doc["poolId"] = node["poolId"]
-    doc["prevUser"] = ""
-    doc["username"] = ""
-    doc["state"] = "available"
-    doc["tags"] = {}
-
-    try:
-        res = server_pool_helper.upsert_node_to_server_pool(doc)
-        if not res:
-            result["result"] = False
-            result["reason"] = f"Cannot add node {node['ipaddr']} to server pool"
-            logger.error(result["reason"])
-            return result
-        logger.info(f"Document for node {node['ipaddr']} added to server pool successfuly")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot add node {node['ipaddr']} to server pool : {e}"
-        logger.error(result["reason"])
-        return result
-    
-    result["result"] = True
-    result["init_node_res"] = result_init_node
-    return result
-
-def parse_arguments():
-    parser = argparse.ArgumentParser(description="A tool to add VMs to pool")
-    parser.add_argument("--data", type=str, help="The data of all VMs")
-    return parser.parse_args()
-
-def main():
-    logging_conf_path = os.path.join(script_dir, "..", "..", "..", "logging.conf")
-    logging.config.fileConfig(logging_conf_path)
-
-    args = parse_arguments()
-    if not args.data:
-        logger.error("No node data is passed to add")
-        return
-    try:
-        node_data = eval(args.data)
-    except Exception as e:
-        logger.error(f"The format of data is wrong : {e}")
-        return
-
-    logger.info(f"The number of nodes to add: {len(node_data)}")
-
-    for node in node_data:
-        if "ipaddr" not in node:
-            logger.error("Field ipaddr missing from one of the nodes")
-            return
-
-    results = add_nodes_parallel(node_data)
-
-    current_time = datetime.datetime.now()
-    timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
-    result_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", f"results_{timestamp_string}")
-    if not os.path.exists(result_dir_path):
-        logger.info(f"Creating directory {result_dir_path}")
-        try:
-            os.makedirs(result_dir_path)
-        except Exception as e:
-            logger.error(f"Error creating directory {result_dir_path} : {e}")
-            return 
-    logger.info(f"Successfully created directory {result_dir_path}")
-    local_file_path = os.path.join(result_dir_path, f"result.json")
-    with open(local_file_path, "w") as json_file:
-        json.dump(results, json_file)
-
-
-if __name__ == "__main__":
-    main()
+    def execute(self):
+        self.start_task()
+        sub_tasks = []
+        for node in self.data:
+            params = {"node" : node}
+            subtask = AddNodesTask.AddNodeSubTask(params)
+            self.add_sub_task(subtask)
+            sub_tasks.append(subtask)
+        for sub_task in sub_tasks:
+            self.get_sub_task_result(subtask=sub_task)
+        self.complete_task(result=True)
