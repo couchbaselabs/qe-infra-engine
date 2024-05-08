@@ -12,7 +12,7 @@ class Task:
         self.executor_pool = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
 
     def start_task(self):
-        self.logger.info()
+        self.logger.info(f"Starting task {self.task_name}_{self.id}")
         self.task_result.start_task()
 
     def complete_task(self, result):
@@ -34,7 +34,6 @@ class Task:
         return subtask_id
 
     def get_sub_task_result(self, subtask_id):
-        result = False
         try:
             result = self.subtasks[subtask_id][0].result()
             exception = self.subtasks[subtask_id][0].exception()
@@ -42,12 +41,13 @@ class Task:
                 self.logger.critical(f"Exception in {subtask_id}: {exception}")
                 self.subtasks[subtask_id][1].set_exception(exception)
             else:
-                self.subtasks[subtask_id][1].complete_task(result=result)
+                self.subtasks[subtask_id][1].complete_task(result=True)
         except Exception as e:
             self.logger.warning(f"{subtask_id} has not run properly and has ended abruptly : {e}")
             self.subtasks[subtask_id][1].set_exception(e)
 
         task_result = self.subtasks[subtask_id][1]
+        TaskResult.generate_json_result(task_result)
         self.subtasks.pop(subtask_id, None)
         return task_result
 

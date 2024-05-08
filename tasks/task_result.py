@@ -46,5 +46,6 @@ class TaskResult:
                     else:
                         task_result.result_json[sub_task] = task_result.subtasks[sub_task]
                 return task_result.result_json
-            else:
-                return str(task_result.exception)
+            elif task_result:
+                task_result.result_json = str(task_result.exception)
+                return task_result.result_json

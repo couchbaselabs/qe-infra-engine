@@ -501,7 +501,8 @@ class NodeHealthMonitorTask(Task):
             sub_tasks = []
             for doc in docs:
                 params = {"node" : doc}
-                subtaskid = self.add_sub_task(sub_task_name, params)
+                sub_task = getattr(self, sub_task_name)
+                subtaskid = self.add_sub_task(sub_task, params)
                 sub_tasks.append([doc["doc_key"], subtaskid])
             for doc_key, subtask_id in sub_tasks:
                 task_result = self.get_sub_task_result(subtask_id=subtask_id)
@@ -510,3 +511,14 @@ class NodeHealthMonitorTask(Task):
                 self.task_result.subtasks[doc_key][sub_task_name] = task_result
 
         self.complete_task(result=True)
+
+    def generate_json_result(self, timeout=3600):
+        TaskResult.generate_json_result(self.task_result)
+        print(self.task_result.result_json)
+        for doc_key in self.task_result.result_json:
+           for sub_task_name in self.task_result.result_json[doc_key]:
+               print(self.task_result.subtasks[doc_key][sub_task_name])
+               res = TaskResult.generate_json_result(self.task_result.subtasks[doc_key][sub_task_name])
+               print(res)
+               self.task_result.result_json[doc_key][sub_task_name] = res
+        return self.task_result.result_json

@@ -7,11 +7,10 @@ node_health_monitor_task :
             - --poolId
           type: str
           nargs: '+'
-          help: "The poolId"
+          help: "The poolId for which the node health monitor should be run. By default all poolIds are picked"
         tasks:
           flags:
             - --tasks
           type: str
           nargs: '+'
-          help: "The tasks"
-          help1 : 1
+          help: "The tasks that have to be run as part of the node health monitor. By default all tasks are run"
