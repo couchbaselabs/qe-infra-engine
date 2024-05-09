@@ -1,20 +1,19 @@
 node_health_monitor_task : 
-  path : tasks/node_maintenance/node_health_monitor/node_health_monitor.py
-  class: NodeHealthMonitorTask
-  params : 
-    poolId:
-      flags:
-        - --poolId
-      type: str
-      nargs: '+'
-      help: "The poolId"
-    tasks:
-      flags:
-        - --tasks
-      type: str
-      nargs: '+'
-      help: "The tasks"
-      help1 : 1
+      path : tasks/node_maintenance/node_health_monitor/node_health_monitor.py
+      class: NodeHealthMonitorTask
+      params : 
+        poolId:
+          flags:
+            - --poolId
+          type: str
+          nargs: '+'
+          help: "The poolId for which the node health monitor should be run. By default all poolIds are picked"
+        tasks:
+          flags:
+            - --tasks
+          type: str
+          nargs: '+'
+          help: "The tasks that have to be run as part of the node health monitor. By default all tasks are run"
 add_nodes_task:
   path : tasks/node_maintenance/node_operations/add_nodes.py
   class : AddNodesTask
