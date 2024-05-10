@@ -26,7 +26,7 @@ class ServerPoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
                     self._initialized.set()
 
     def upsert_node_to_server_pool(self, doc):
-        key = doc["ipaddr"]
+        key = doc["doc_key"]
         return self.upsert_doc(client=self.server_pool_client,
                                key=key,
                                doc=doc,

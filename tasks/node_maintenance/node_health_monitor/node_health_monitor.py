@@ -514,11 +514,8 @@ class NodeHealthMonitorTask(Task):
 
     def generate_json_result(self, timeout=3600):
         TaskResult.generate_json_result(self.task_result)
-        print(self.task_result.result_json)
         for doc_key in self.task_result.result_json:
            for sub_task_name in self.task_result.result_json[doc_key]:
-               print(self.task_result.subtasks[doc_key][sub_task_name])
                res = TaskResult.generate_json_result(self.task_result.subtasks[doc_key][sub_task_name])
-               print(res)
                self.task_result.result_json[doc_key][sub_task_name] = res
         return self.task_result.result_json

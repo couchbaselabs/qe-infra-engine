@@ -25,7 +25,6 @@ NODE_TEMPLATE = {
     "prevUser": "",
     "state": "",
     "username": "",
-    "added_on" : "",
     "tags" : {}
 }
 
