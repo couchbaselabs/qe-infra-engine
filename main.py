@@ -38,19 +38,20 @@ def parse_arguments():
         print("Usage: python a.py <task_name>")
         sys.exit(1)
 
-    task_name = sys.argv[1]
-    print(f"Task name: {task_name}")
-
     tasks_file_path = os.path.join(script_dir, "tasks", "tasks.yml")
 
     with open(tasks_file_path, 'r') as file:
         tasks_data = yaml.safe_load(file)
 
+    if sys.argv[1] not in tasks_data:
+        print("Usage: python a.py <task_name>")
+        raise ValueError(f"Given task {sys.argv[1]} not found")
+
+    task_name = sys.argv[1]
+    print(f"Task name: {task_name}")
+
     parser = argparse.ArgumentParser(description="A tool to run a task")
     parser.add_argument("task_name", help="Name of the task")
-
-    if task_name not in tasks_data:
-        raise ValueError(f"Given task {task_name} not found")
     
     argument_data = tasks_data[task_name]
 

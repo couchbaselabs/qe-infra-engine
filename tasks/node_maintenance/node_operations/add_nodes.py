@@ -1,9 +1,7 @@
 import copy
-import time
 from typing import Optional
 from tasks.task import Task
 from tasks.task_result import TaskResult
-from constants.task_states import TaskStates
 from helper.sdk_helper.testdb_helper.server_pool_helper import ServerPoolSDKHelper
 from util.ssh_util.node_infra_helper.remote_connection_factory import RemoteConnectionObjectFactory
 from constants.doc_templates import NODE_TEMPLATE
@@ -140,7 +138,7 @@ class AddNodesTask(Task):
         for node in self.data:
             params = {"node" : node}
             subtask = self.add_nodes_sub_task
-            subtaskid = self.add_sub_task(subtask)
+            subtaskid = self.add_sub_task(subtask, params)
             sub_tasks.append([node["ipaddr"], subtaskid])
         for doc_key, subtask_id in sub_tasks:
             task_result = self.get_sub_task_result(subtask_id=subtask_id)
