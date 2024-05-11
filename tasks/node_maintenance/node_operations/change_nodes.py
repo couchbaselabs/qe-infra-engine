@@ -1,122 +1,94 @@
-import sys
-import os
-
-script_dir = os.path.dirname(os.path.realpath(__file__))
-project_paths = [
-    os.path.join(script_dir, "..", "..", ".."),
-    os.path.join(script_dir, "..", "..", "..", "util", "ssh_util")
-]
-for project_path in project_paths:
-    if project_path not in sys.path:
-        sys.path.append(project_path)
-
-import logging.config
-import argparse
-from constants.doc_templates import NODE_TEMPLATE
-import concurrent
-import datetime
-import json
+from typing import Optional
+from tasks.task import Task
+from tasks.task_result import TaskResult
+from tasks.node_maintenance.node_operations.add_nodes import AddNodesTask
 from helper.sdk_helper.testdb_helper.server_pool_helper import ServerPoolSDKHelper
-from util.ssh_util.node_infra_helper.remote_connection_factory import RemoteConnectionObjectFactory
-import tasks.node_maintenance.node_operations.add_nodes as add_node_task
 
-logger = logging.getLogger("tasks")
+class ChangeNodesTask(Task):
 
-def change_nodes_parallel(node_data, max_workers=None):
-    if not max_workers:
-        num_cores = os.cpu_count()
-        max_workers = num_cores if num_cores is not None else 10
-
-    final_result = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(change_node, node): node for node in node_data}
-        for future in concurrent.futures.as_completed(futures):
-            node = futures[future]
-            result = future.result()
-            final_result[node["new_ipaddr"]] = result
-            logger.critical(f"Deleting helper for remote {node['new_ipaddr']}")
-            RemoteConnectionObjectFactory.delete_helper(ipaddr=node["new_ipaddr"])
-    
-    return final_result
-
-def change_node(node):
-    old_ipaddr = node["old_ipaddr"]
-    new_ipaddr = node["new_ipaddr"]
-    result = {}
-    try:
-        server_pool_helper = ServerPoolSDKHelper()
-        logger.info(f"Connection to Server Pool successful")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot connect to Server Pool using SDK : {e}"
-        logger.error(result["reason"])
-        return result
-    
-    try:
-        res = server_pool_helper.delete_node(old_ipaddr)
-        if res:
-            logger.info(f"Doc with old ipaddr {old_ipaddr} successfully deleted")
-        else:
-            result["result"] = False
-            result["reason"] = f"Cannot delete old ipaddr {old_ipaddr} doc in server-pool : {e}"
-            logger.error(result["reason"])
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot find old ipaddr {old_ipaddr} doc in server-pool : {e}"
-        logger.error(result["reason"])
-        return result
-
-    node["ipaddr"] = new_ipaddr
-    result = add_node_task.add_node(node)
-    result["delete_old_ipaddr"] = True
-    return result
-
-def parse_arguments():
-    parser = argparse.ArgumentParser(description="A tool to add VMs to pool")
-    parser.add_argument("--data", type=str, help="The data of all VMs")
-    return parser.parse_args()
-
-def main():
-    logging_conf_path = os.path.join(script_dir, "..", "..", "..", "logging.conf")
-    logging.config.fileConfig(logging_conf_path)
-
-    args = parse_arguments()
-    if not args.data:
-        logger.error("No node data is passed to add")
-        return
-    try:
-        node_data = eval(args.data)
-    except Exception as e:
-        logger.error(f"The format of data is wrong : {e}")
-        return
-
-    logger.info(f"The number of nodes to change: {len(node_data)}")
-
-    for node in node_data:
-        if "old_ipaddr" not in node:
-            logger.error("Field old_ipaddr missing from one of the nodes")
-            return
-        if "new_ipaddr" not in node:
-            logger.error("Field new_ipaddr missing from one of the nodes")
-            return
-
-    results = change_nodes_parallel(node_data)
-
-    current_time = datetime.datetime.now()
-    timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
-    result_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", f"results_{timestamp_string}")
-    if not os.path.exists(result_dir_path):
-        logger.info(f"Creating directory {result_dir_path}")
+    def change_nodes_sub_task(self, task_result: TaskResult, params: dict) -> None:
+        old_ipaddr = params["old_ipaddr"]
         try:
-            os.makedirs(result_dir_path)
+            server_pool_helper = ServerPoolSDKHelper()
+            self.logger.info(f"Connection to Server Pool successful")
         except Exception as e:
-            logger.error(f"Error creating directory {result_dir_path} : {e}")
-            return 
-    logger.info(f"Successfully created directory {result_dir_path}")
-    local_file_path = os.path.join(result_dir_path, f"result.json")
-    with open(local_file_path, "w") as json_file:
-        json.dump(results, json_file)
+            exception = f"Cannot connect to Server Pool using SDK : {e}"
+            self.set_subtask_exception(exception)
+        
+        try:
+            res = server_pool_helper.delete_node(old_ipaddr)
+            if res:
+                self.logger.info(f"Doc with old ipaddr {old_ipaddr} successfully deleted")
+            else:
+                exception = f"Cannot delete old ipaddr {old_ipaddr} doc in server-pool : {e}"
+                self.set_subtask_exception(exception)
+        except Exception as e:
+            exception = f"Cannot find old ipaddr {old_ipaddr} doc in server-pool : {e}"
+            self.set_subtask_exception(exception)
+        
+        task_result.result_json = {}
+        task_result.result_json["delete_old_ipaddr"] = True
 
+    def __init__(self, params:dict, max_workers: Optional[int]=None):
+        """
+            Initialize a AddNodesTask with the given params.
+            Args:
+            params (dict): The dictionary with the following fields
+                Valid keys:
+                    - data (list) : List of nodes which has to be added to server-pool
+                        Each node is a dictionary with many fields
+        """
+        task_name = ChangeNodesTask.__name__
+        if max_workers is None:
+            max_workers = 100
+        super().__init__(task_name, max_workers)
 
-if __name__ == "__main__":
-    main()
+        if "data" not in params or params["data"] is None:
+            exception = ValueError(f"Data is not present to add to server-pool")
+            self.set_exception(exception)
+        elif not isinstance(params["data"], list):
+            exception = ValueError(f"data param has to be a list : {params['data']}")
+            self.set_exception(exception)
+        else:
+            self.data = params["data"]
+
+        for node in self.data:
+            if "old_ipaddr" not in node:
+                exception = ValueError(f"old ipaddr missing from node : {node}")
+                self.set_exception(exception)
+            if "new_ipaddr" not in node:
+                exception = ValueError(f"new ipaddr missing from node : {node}")
+                self.set_exception(exception)
+            params["data"]["ipaddr"] = node["new_ipaddr"]
+        
+        self.add_nodes_task = AddNodesTask(params)
+
+    def generate_json_result(self, timeout=3600):
+        self.task_result.result_json = []
+        for node in self.data:
+            res = {}
+            res["old_ipaddr"] = node["old_ipaddr"]
+            res["new_ipaddr"] = node["new_ipaddr"]
+            res["delete_old_node"] = TaskResult.generate_json_result(self.task_result.subtasks[node["old_ipaddr"]])
+            res["add_new_ipaddr"] = TaskResult.generate_json_result(self.add_nodes_task)[node["new_ipaddr"]]
+            self.task_result.result_json.append(res)
+        return self.task_result.result_json
+
+    def execute(self):
+        self.start_task()
+
+        sub_tasks = []
+        for node in self.data:
+            params = {"node" : node}
+            subtask = self.change_nodes_sub_task
+            subtaskid = self.add_sub_task(subtask, params)
+            sub_tasks.append([node["old_ipaddr"], subtaskid])
+        for doc_key, subtask_id in sub_tasks:
+            task_result = self.get_sub_task_result(subtask_id=subtask_id)
+            if doc_key not in self.task_result.subtasks:
+                self.task_result.subtasks[doc_key] = {}
+            self.task_result.subtasks[doc_key] = task_result
+
+        self.add_nodes_task.execute()
+
+        self.complete_task(result=True)

@@ -23,6 +23,13 @@ class Task:
         self.logger.error(exception)
         self.complete_task(result=False)
         raise self.task_result.exception
+    
+    def set_subtask_exception(self, exception: str | Exception):
+        if not isinstance(exception, Exception):
+            exception = Exception(exception)
+        self.logger.error(exception)
+        raise exception
+
 
     def add_sub_task(self, subtask, params):
         self.logger.debug(f"Sub task {subtask.__name__} added for execution")
