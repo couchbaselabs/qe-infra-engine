@@ -16,7 +16,7 @@ class UpdateHostsTask(Task):
         required_fields = ["label", "hostname"]
         for field in required_fields:
             if field not in params["host"]:
-                self.set_subtask_exception(ValueError(f"{field} key is missing for the host {params["host"]}"))
+                self.set_subtask_exception(ValueError(f"{field} key is missing for the host {params['host']}"))
 
         host = params["host"]
 
@@ -107,7 +107,8 @@ class UpdateHostsTask(Task):
                 "username" : host_doc["xen_username"],
                 "password" : host_doc["xen_password"],
                 "group" : host_doc["group"],
-                "label" : host_doc["name"]
+                "label" : host_doc["name"],
+                "hostname" : host_doc["ipaddr"]
             }
             params["data"].append(host_info)
         self.add_host_task = AddHostTask(params)
@@ -131,3 +132,18 @@ class UpdateHostsTask(Task):
             self.task_result.subtasks["delete_vms_data"][host] = task_result
 
         self.complete_task(result=True)
+
+    def generate_json_result(self, timeout=3600):
+        TaskResult.generate_json_result(self.task_result)
+        TaskResult.generate_json_result(self.add_host_task.task_result)
+        
+        self.task_result.result_json = {}
+        for host in self.data:
+            label = host["label"]
+            self.task_result.result_json[label] = {}
+            self.task_result.result_json[label]["update_host_data"] = self.add_host_task.task_result.result_json[label]
+            self.task_result.result_json[label]["delete_vms_data"] = TaskResult.generate_json_result(self.task_result.subtasks["delete_vms_data"][label])
+
+        return self.task_result.result_json
+
+
