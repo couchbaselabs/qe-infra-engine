@@ -50,3 +50,13 @@ remove_hosts_task:
         - --data
       type: json.loads
       help: "The data of hosts to be removed from the host-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of hosts"
+update_host_task:
+  path : tasks/host_maintenance/host_operations/update_hosts.py
+  class : UpdateHostsTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of hosts to be updated in the host-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of hosts"
+
