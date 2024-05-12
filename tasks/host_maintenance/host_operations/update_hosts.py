@@ -1,148 +1,133 @@
-import sys
-import os
-
-# Adding project path into the sys paths for scanning all the modules
-script_dir = os.path.dirname(os.path.realpath(__file__))
-project_paths = [
-    os.path.join(script_dir, "..", ".."),
-    os.path.join(script_dir, "..", "..", "util", "ssh_util")
-]
-for project_path in project_paths:
-    if project_path not in sys.path:
-        sys.path.append(project_path)
-
-import logging.config
-import argparse
-import concurrent
-import datetime
-import json
+from typing import Optional
+from tasks.task import Task
+from tasks.task_result import TaskResult
+from tasks.host_maintenance.host_operations.add_hosts import AddHostTask
 from helper.sdk_helper.testdb_helper.host_pool_helper import HostSDKHelper
-import tasks.host_maintenance.host_operations.add_hosts as add_hosts
+from constants.task_states import TaskStates
 
-logger = logging.getLogger("tasks")
+class UpdateHostsTask(Task):
+    def delete_host_vm_docs(self, task_result: TaskResult, params: dict) -> None:
+        if self.add_host_task.task_result.state != TaskStates.COMPLETED:
+            self.set_subtask_exception("Cannot delete host/vm docs before updation of docs")
 
-def _get_result_failure(reason, exception=None):
-    result = {}
-    result["result"] = False
-    result["reason"] = f"{reason} : {str(exception)}" if exception else f"{reason}"
-    logger.error(result["reason"])
-    return result
+        if "host" not in params:
+            self.set_subtask_exception(ValueError(f"host not found in params {params}"))
 
-def update_hosts_parallel(hosts_data, max_workers=None):
-    if not max_workers:
-        num_cores = os.cpu_count()
-        max_workers = num_cores if num_cores is not None else 1000
+        required_fields = ["label", "hostname"]
+        for field in required_fields:
+            if field not in params["host"]:
+                self.set_subtask_exception(ValueError(f"{field} key is missing for the host {params["host"]}"))
 
-    final_result = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(update_hosts_docs, host): host for host in hosts_data}
-        for future in concurrent.futures.as_completed(futures):
-            host = futures[future]
-            result = future.result()
-            final_result[host["label"]] = result
+        host = params["host"]
 
-    return final_result
-
-def update_hosts_docs(host_data):
-    result = {}
-    try:
-        host_sdk_helper = HostSDKHelper()
-        logger.info(f"Connection to Host Pool successful")
-    except Exception as e:
-        return _get_result_failure(reason="Cannot connect to Host Pool using SDK",
-                                   exception=e)
-    
-    try:
-        query_result = host_sdk_helper.fetch_vms_by_host(host_data["label"])
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot fetch all vms from host-pool : {e}"
-        logger.error(result["reason"])
-        return result
-    
-    vm_docs = []
-    for row in query_result:
-        row[host_sdk_helper.vm_collection_name]["doc_key"] = row["id"]
-        vm_docs.append(row[host_sdk_helper.vm_collection_name])
-
-    try:
-        host_doc = eval(host_sdk_helper.fetch_host(host_data['label']))
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot fetch host doc for {host_data['label']} from host-pool : {e}"
-        logger.error(result["reason"])
-        return result
-    
-    host_data = {
-        "username" : host_doc["xen_username"],
-        "password" : host_doc["xen_password"],
-        "group" : host_doc["group"],
-        "label" : host_doc["name"]
-    }
-
-    result["update_host_data"] = add_hosts.add_host(host_data)
-    if not result["update_host_data"]["result"]:
-        return result
-    
-    result["remove_vm_data"] = {}
-    for vm in vm_docs:
-        if vm["name_label"] not in result["update_host_data"]["adding_vm_data"]:
-            try:
-                res = host_sdk_helper.remove_vm(vm["name_label"])
-                if not res:
-                    result["remove_vm_data"][vm["name_label"]] = _get_result_failure(reason=f"Cannot remove vm {vm['name_label']} from host pool")
-                else:
-                    logger.info(f"Document for vm {vm['name_label']} removed from host pool successfuly")
-                    result["remove_vm_data"][vm["name_label"]] = True
-            except Exception as e:
-                result["remove_vm_data"][vm["name_label"]] =  _get_result_failure(reason=f"Cannot remove vm {vm['name_label']} from host pool",
-                                                                                  exception=e)
-    
-    return result
-
-def parse_arguments():
-    parser = argparse.ArgumentParser(description="A tool to add VMs to pool")
-    parser.add_argument("--data", type=str, help="The data of all VMs")
-    return parser.parse_args()
-
-def main():
-    logging_conf_path = os.path.join(script_dir, "..", "..", "logging.conf")
-    logging.config.fileConfig(logging_conf_path)
-
-    args = parse_arguments()
-    if not args.data:
-        logger.error("No host data is passed to add")
-        return
-    try:
-        hosts_data = eval(args.data)
-    except Exception as e:
-        logger.error(f"The format of data is wrong : {e}")
-        return
-
-    logger.info(f"The number of hosts to remove: {len(hosts_data)}")
-
-    for host in hosts_data:
-        if "label" not in host:
-            logger.error("Field label missing from one of the nodes")
-            return
-
-    results = update_hosts_parallel(hosts_data)
-
-    current_time = datetime.datetime.now()
-    timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
-    result_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", f"results_{timestamp_string}")
-    if not os.path.exists(result_dir_path):
-        logger.info(f"Creating directory {result_dir_path}")
         try:
-            os.makedirs(result_dir_path)
+            host_sdk_helper = HostSDKHelper()
+            self.logger.info(f"Connection to Host Pool successful")
         except Exception as e:
-            logger.error(f"Error creating directory {result_dir_path} : {e}")
-            return
-    logger.info(f"Successfully created directory {result_dir_path}")
-    local_file_path = os.path.join(result_dir_path, f"result.json")
-    with open(local_file_path, "w") as json_file:
-        json.dump(results, json_file)
+            exception = f"Cannot connect to Host Pool using SDK : {e}"
+            self.set_subtask_exception(exception)
 
+        try:
+            query_result = host_sdk_helper.fetch_vms_by_host(host["label"])
+        except Exception as e:
+            exception = f"Cannot fetch all vms from host-pool : {e}"
+            self.set_subtask_exception(exception)
 
-if __name__ == "__main__":
-    main()
+        vm_docs = []
+        for row in query_result:
+            row[host_sdk_helper.vm_collection_name]["doc_key"] = row["id"]
+            vm_docs.append(row[host_sdk_helper.vm_collection_name])
+
+        task_result.result_json = {}
+        update_hosts_task_res = TaskResult.generate_json_result(self.add_host_task.task_result)
+        for vm in vm_docs:
+            update_host_subtask = update_hosts_task_res[host["label"]]
+            if vm["name_label"] not in update_host_subtask["adding_vm_data"]:
+                try:
+                    res = host_sdk_helper.remove_vm(vm["name_label"])
+                    if not res:
+                        exception = f"Cannot remove vm {vm['name_label']} from host pool"
+                        task_result.result_json[vm["name_label"]] = exception
+                    else:
+                        self.logger.info(f"Document for vm {vm['name_label']} removed from host pool successfuly")
+                        task_result.result_json[vm["name_label"]] = str(True)
+                except Exception as e:
+                    exception = f"Cannot remove vm {vm['name_label']} from host pool : {e}"
+                    task_result.result_json[vm["name_label"]] = exception
+
+    def _fetch_host_doc(self, host_label):
+        try:
+            host_sdk_helper = HostSDKHelper()
+            self.logger.info(f"Connection to Host Pool successful")
+        except Exception as e:
+            exception = f"Cannot connect to Host Pool using SDK : {e}"
+            self.set_exception(exception)
+
+        try:
+            host_doc = eval(host_sdk_helper.fetch_host(host_label))
+        except Exception as e:
+            exception = f"Cannot fetch host doc for {host_label} from host-pool : {e}"
+            self.set_exception(exception)
+
+        return host_doc
+
+    def __init__(self, params:dict, max_workers: Optional[int]=None):
+        """
+            Initialize a UpdateHostsTask with the given params.
+            Args:
+            params (dict): The dictionary with the following fields
+                Valid keys:
+                    - data (list) : List of nodes which has to be added to server-pool
+                        Each node is a dictionary with many fields
+        """
+        task_name = UpdateHostsTask.__name__
+        if max_workers is None:
+            max_workers = 100
+        super().__init__(task_name, max_workers)
+
+        if "data" not in params or params["data"] is None:
+            exception = ValueError(f"Data is not present to update host-pool")
+            self.set_exception(exception)
+        elif not isinstance(params["data"], list):
+            exception = ValueError(f"data param has to be a list : {params['data']}")
+            self.set_exception(exception)
+        else:
+            self.data = params["data"]
+
+        for count, host in enumerate(self.data):
+            if "label" not in host:
+                exception = ValueError(f"label missing from host : {host}")
+                self.set_exception(exception)
+
+        params = {}
+        params["data"] = []
+        for host in self.data:
+            host_doc = self._fetch_host_doc(host["label"])
+            host_info = {
+                "username" : host_doc["xen_username"],
+                "password" : host_doc["xen_password"],
+                "group" : host_doc["group"],
+                "label" : host_doc["name"]
+            }
+            params["data"].append(host_info)
+        self.add_host_task = AddHostTask(params)
+
+    def execute(self):
+        self.start_task()
+
+        self.add_host_task.execute()
+        self.task_result.subtasks["update_host_data"] = self.add_host_task.task_result
+
+        sub_tasks = []
+        for host in self.data:
+            params = {"host" : host}
+            subtask = self.delete_host_vm_docs
+            subtaskid = self.add_sub_task(subtask, params)
+            sub_tasks.append([host["label"], subtaskid])
+        for host, subtask_id in sub_tasks:
+            task_result = self.get_sub_task_result(subtask_id=subtask_id)
+            if "delete_vms_data" not in self.task_result.subtasks:
+                self.task_result.subtasks["delete_vms_data"] = {}
+            self.task_result.subtasks["delete_vms_data"][host] = task_result
+
+        self.complete_task(result=True)
