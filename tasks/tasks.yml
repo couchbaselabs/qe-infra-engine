@@ -32,3 +32,12 @@ change_nodes_task:
         - --data
       type: json.loads
       help: "The data of nodes to be changed in the server-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of nodes"
+add_hosts_task:
+  path : tasks/host_maintenance/host_operations/add_hosts.py
+  class : AddHostTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of hosts to be changed in the host-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of hosts"
