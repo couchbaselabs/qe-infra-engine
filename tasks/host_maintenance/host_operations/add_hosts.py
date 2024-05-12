@@ -16,7 +16,7 @@ class AddHostTask(Task):
         required_fields = ["host_data", "group", "xen_username", "xen_password"]
         for field in required_fields:
             if field not in params:
-                self.set_subtask_exception(ValueError(f"{field} key is missing for the host {params["label"]}"))
+                self.set_subtask_exception(ValueError(f"{field} key is missing for the host {params['label']}"))
 
         host = params["label"]
         host_data = params["host_data"]
