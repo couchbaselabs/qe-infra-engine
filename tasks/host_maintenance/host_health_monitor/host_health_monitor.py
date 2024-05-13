@@ -540,7 +540,6 @@ class HostHealthMonitorTask(Task):
     
     def generate_json_result(self, timeout=3600):
         TaskResult.generate_json_result(self.task_result)
-        print(self.task_result.result_json)
         result_json = {}
         if self.update_docs:
            result_json["update_docs"] = self.task_result.result_json["update_docs_task"]
