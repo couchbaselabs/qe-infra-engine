@@ -23,6 +23,13 @@ class Task:
         self.logger.error(exception)
         self.complete_task(result=False)
         raise self.task_result.exception
+    
+    def set_subtask_exception(self, exception: str | Exception):
+        if not isinstance(exception, Exception):
+            exception = Exception(exception)
+        self.logger.error(exception)
+        raise exception
+
 
     def add_sub_task(self, subtask, params):
         self.logger.debug(f"Sub task {subtask.__name__} added for execution")
@@ -35,12 +42,12 @@ class Task:
 
     def get_sub_task_result(self, subtask_id):
         try:
-            result = self.subtasks[subtask_id][0].result()
             exception = self.subtasks[subtask_id][0].exception()
             if exception:
                 self.logger.critical(f"Exception in {subtask_id}: {exception}")
                 self.subtasks[subtask_id][1].set_exception(exception)
             else:
+                result = self.subtasks[subtask_id][0].result()
                 self.subtasks[subtask_id][1].complete_task(result=True)
         except Exception as e:
             self.logger.warning(f"{subtask_id} has not run properly and has ended abruptly : {e}")

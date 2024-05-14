@@ -8,23 +8,17 @@ from constants.doc_templates import NODE_TEMPLATE
 
 class AddNodesTask(Task):
 
-    def _set_subtask_exception(self, exception: str | Exception):
-        if not isinstance(exception, Exception):
-            exception = Exception(exception)
-        self.logger.error(exception)
-        raise exception
-
     def add_nodes_sub_task(self, task_result: TaskResult, params: dict) -> None:
         if "node" not in params:
-            self._set_subtask_exception(ValueError("Invalid arguments passed"))
+            self.set_subtask_exception(ValueError("Invalid arguments passed"))
         node = params["node"]
         if "ipaddr" not in node:
-            self._set_subtask_exception(ValueError(f"ipaddr key is missing for the node {node}"))
+            self.set_subtask_exception(ValueError(f"ipaddr key is missing for the node {node}"))
         required_fields = ["ssh_username", "ssh_password", "vm_name", "poolId", "origin"]
         for field in required_fields:
             if field not in node:
                 exception = f"Field {field} not present for node {node['ipaddr']}"
-                self._set_subtask_exception(exception)
+                self.set_subtask_exception(exception)
 
         ipaddr = node['ipaddr']
         ssh_username = node['ssh_username']
@@ -35,7 +29,7 @@ class AddNodesTask(Task):
             self.logger.info(f"Connection to Server Pool successful")
         except Exception as e:
             exception = f"Cannot connect to Server Pool using SDK : {e}"
-            self.set_exception(exception)
+            self.set_subtask_exception(exception)
 
         try:
             remote_connection_helper = RemoteConnectionObjectFactory.fetch_helper(ipaddr=ipaddr,
@@ -44,32 +38,32 @@ class AddNodesTask(Task):
             self.logger.info(f"Connection to node {ipaddr} successful")
         except Exception as e:
             exception = f"Cannot connect to node {ipaddr} : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         try:
             mac_address = remote_connection_helper.find_mac_address()
         except Exception as e:
             exception = f"Could not find mac adddress for node {ipaddr} : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         try:
             memory = remote_connection_helper.find_memory_total()
         except Exception as e:
             exception = f"Could not find total memory for node {ipaddr} : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         try:
             short_os, os_version = remote_connection_helper.find_os_version()
         except Exception as e:
             exception = f"Could not find os version for node {ipaddr} : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         try:
             result_init_node = remote_connection_helper.initialize_node()
             self.logger.info(f"Initialization for node {ipaddr} completed successfuly")
         except Exception as e:
             exception = f"Cannot Initialize node {ipaddr}  : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         doc = copy.deepcopy(NODE_TEMPLATE)
 
@@ -92,13 +86,13 @@ class AddNodesTask(Task):
             res = server_pool_helper.upsert_node_to_server_pool(doc)
             if not res:
                 exception = f"Cannot add node {ipaddr} into server pool"
-                self._set_subtask_exception(exception)
+                self.set_subtask_exception(exception)
 
             self.logger.info(f"Document for node {ipaddr} added to server pool successfuly")
 
         except Exception as e:
             exception = f"Cannot add node {ipaddr} into server pool : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         task_result.result_json = {}
         task_result.result_json["init_node_res"] = result_init_node

@@ -18,15 +18,9 @@ from constants.doc_templates import NODE_TEMPLATE
 
 class NodeHealthMonitorTask(Task):
 
-    def _set_subtask_exception(self, exception):
-        if not isinstance(exception, Exception):
-            exception = Exception(exception)
-        self.logger.error(exception)
-        raise exception
-
     def check_connectivity_sub_task(self, task_result, params):
         if "node" not in params:
-            self._set_subtask_exception(ValueError("Invalid arguments passed"))
+            self.set_subtask_exception(ValueError("Invalid arguments passed"))
         node_doc = params["node"]
         ipaddr = node_doc["ipaddr"]
         try:
@@ -34,7 +28,7 @@ class NodeHealthMonitorTask(Task):
             self.logger.info(f"Connection to Server Pool successful")
         except Exception as e:
             exception = f"Cannot connect to Server Pool using SDK : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         if "tags" not in node_doc:
            node_doc["tags"] = {}
@@ -53,20 +47,20 @@ class NodeHealthMonitorTask(Task):
             res = server_pool_helper.upsert_node_to_server_pool(node_doc)
             if not res:
                 exception = f"Cannot upsert node {ipaddr} with node-connectivity checks to server pool"
-                self._set_subtask_exception(exception)
+                self.set_subtask_exception(exception)
 
             self.logger.info(f"Document for node {ipaddr} with node-connectivity checks upserted to server pool successfuly")
 
         except Exception as e:
             exception = f"Cannot upsert node {ipaddr} with node-connectivity checks to server pool : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         task_result.result_json = {}
         task_result.result_json["connection_check"] = node_doc["tags"]["connection_check"]
 
     def check_connectivity2_sub_task(self, task_result, params):
         if "node" not in params:
-            self._set_subtask_exception(ValueError("Invalid arguments passed"))
+            self.set_subtask_exception(ValueError("Invalid arguments passed"))
         node_doc = params["node"]
 
         ipaddr = node_doc["ipaddr"]
@@ -76,7 +70,7 @@ class NodeHealthMonitorTask(Task):
             self.logger.info(f"Connection to Server Pool successful")
         except Exception as e:
             exception = f"Cannot connect to Server Pool using SDK : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -159,13 +153,13 @@ class NodeHealthMonitorTask(Task):
             res = server_pool_helper.upsert_node_to_server_pool(node_doc)
             if not res:
                 exception = f"Cannot upsert node {ipaddr} with node-connectivity-2 checks to server pool"
-                self._set_subtask_exception(exception)
+                self.set_subtask_exception(exception)
 
             self.logger.info(f"Document for node {ipaddr} with node-connectivity-2 checks upserted to server pool successfuly")
 
         except Exception as e:
             exception = f"Cannot upsert node {ipaddr} with node-connectivity-2 checks to server pool : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         task_result.result_json = {}
         task_result.result_json["connection_check"] = node_doc["tags"]["connection_check"]
@@ -174,7 +168,7 @@ class NodeHealthMonitorTask(Task):
 
     def field_consistency_sub_task(self, task_result, params):
         if "node" not in params:
-            self._set_subtask_exception(ValueError("Invalid arguments passed"))
+            self.set_subtask_exception(ValueError("Invalid arguments passed"))
         node_doc = params["node"]
 
         ipaddr = node_doc["ipaddr"]
@@ -184,7 +178,7 @@ class NodeHealthMonitorTask(Task):
             self.logger.info(f"Connection to Server Pool successful")
         except Exception as e:
             exception = f"Cannot connect to Server Pool using SDK : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         if "tags" not in node_doc:
             node_doc["tags"] = {}
@@ -220,13 +214,13 @@ class NodeHealthMonitorTask(Task):
             res = server_pool_helper.upsert_node_to_server_pool(node_doc)
             if not res:
                 exception = f"Cannot upsert node {ipaddr} with field_consistency checks to server pool"
-                self._set_subtask_exception(exception)
+                self.set_subtask_exception(exception)
 
             self.logger.info(f"Document for node {ipaddr} with field_consistency checks upserted to server pool successfuly")
 
         except Exception as e:
             exception = f"Cannot upsert node {ipaddr} with field_consistency checks to server pool : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
 
         task_result.result_json = {}
@@ -234,7 +228,7 @@ class NodeHealthMonitorTask(Task):
 
     def node_stats_match_sub_task(self, task_result, params):
         if "node" not in params:
-            self._set_subtask_exception(ValueError("Invalid arguments passed"))
+            self.set_subtask_exception(ValueError("Invalid arguments passed"))
         node_doc = params["node"]
 
         ipaddr = node_doc["ipaddr"]
@@ -242,10 +236,10 @@ class NodeHealthMonitorTask(Task):
         # TODO - Remove post cleaning up of server pool
         if "tags" not in node_doc and "connection_check" not in node_doc["tags"]:
             exception = f"OS version check was run before connection checks for {ipaddr}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
         elif not node_doc["tags"]["connection_check"]:
             exception = f"The node is unreachable, cannot perform os version checks for {ipaddr}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
 
         try:
@@ -253,7 +247,7 @@ class NodeHealthMonitorTask(Task):
             self.logger.info(f"Connection to Server Pool successful")
         except Exception as e:
             exception = f"Cannot connect to Server Pool using SDK : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         if "tags" not in node_doc:
             node_doc["tags"] = {}
@@ -262,13 +256,13 @@ class NodeHealthMonitorTask(Task):
             remote_connection_helper = RemoteConnectionObjectFactory.fetch_helper(ipaddr,"root","couchbase")
         except Exception as e:
             exception = f"The node {ipaddr} is unreachable, cannot perform os version checks : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         try:
             mac_address_in_node = remote_connection_helper.find_mac_address()
         except Exception as e:
             exception = f"Could not find mac adddress for node {ipaddr} : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         if "mac_address" in node_doc and mac_address_in_node == node_doc["mac_address"]:
             node_doc["tags"]["mac_address_node_check"] = {
@@ -284,7 +278,7 @@ class NodeHealthMonitorTask(Task):
             memory_in_node = remote_connection_helper.find_memory_total()
         except Exception as e:
             exception = f"Could not find total memory for node {ipaddr} : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         if "memory" in node_doc and memory_in_node == node_doc["memory"]:
             node_doc["tags"]["memory_node_check"] = {
@@ -300,7 +294,7 @@ class NodeHealthMonitorTask(Task):
             os_node = remote_connection_helper.find_os_version()
         except Exception as e:
             exception = f"Could not find os version for node {ipaddr} : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         if "os_version" in node_doc and os_node == node_doc["os_version"]:
             node_doc["tags"]["os_node_check"] = {
@@ -317,13 +311,13 @@ class NodeHealthMonitorTask(Task):
             res = server_pool_helper.upsert_node_to_server_pool(node_doc)
             if not res:
                 exception = f"Cannot upsert node {ipaddr} with node-stats-consistency checks to server pool"
-                self._set_subtask_exception(exception)
+                self.set_subtask_exception(exception)
 
             self.logger.info(f"Document for node {ipaddr} with node-stats-consistency checks upserted to server pool successfuly")
 
         except Exception as e:
             exception = f"Cannot upsert node {ipaddr} with node-stats-consistency checks to server pool : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         task_result.result_json = {}
         task_result.result_json["mac_address_node_match"] = node_doc["tags"]["mac_address_node_check"]
@@ -332,7 +326,7 @@ class NodeHealthMonitorTask(Task):
 
     def host_pool_check_sub_task(self, task_result, params):
         if "node" not in params:
-            self._set_subtask_exception(ValueError("Invalid arguments passed"))
+            self.set_subtask_exception(ValueError("Invalid arguments passed"))
         node_doc = params["node"]
 
         ipaddr = node_doc["ipaddr"]
@@ -342,14 +336,14 @@ class NodeHealthMonitorTask(Task):
             self.logger.info(f"Connection to Host Pool successful")
         except Exception as e:
             exception = f"Cannot connect to Host Pool using SDK : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         try:
             server_pool_helper = ServerPoolSDKHelper()
             self.logger.info(f"Connection to Server Pool successful")
         except Exception as e:
             exception = f"Cannot connect to Server Pool using SDK : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         if "tags" not in node_doc:
             node_doc["tags"] = {}
@@ -358,13 +352,13 @@ class NodeHealthMonitorTask(Task):
             vms = host_sdk_helper.fetch_vm(ipaddr=ipaddr)
         except Exception as e:
             exception = f"Cannot fetch vm {ipaddr} from Host Pool using SDK : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         try:
             vms = [vm[host_sdk_helper.vm_collection_name] for vm in vms]
         except Exception as e:
             exception = f"Unable to parse query result from Host Pool using SDK : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         if len(vms) == 0:
             node_doc["tags"]["ip_in_host_pool"] = False
@@ -409,13 +403,13 @@ class NodeHealthMonitorTask(Task):
             res = server_pool_helper.upsert_node_to_server_pool(node_doc)
             if not res:
                 exception = f"Cannot upsert node {ipaddr} with host-pool-consistency checks to server pool"
-                self._set_subtask_exception(exception)
+                self.set_subtask_exception(exception)
 
             self.logger.info(f"Document for node {ipaddr} with host-pool-consistency checks upserted to server pool successfuly")
 
         except Exception as e:
             exception = f"Cannot upsert node {ipaddr} with host-pool-consistency checks to server pool : {e}"
-            self._set_subtask_exception(exception)
+            self.set_subtask_exception(exception)
 
         task_result.result_json = {}
         task_result.result_json["ip_in_host_pool"] = node_doc["tags"]["ip_in_host_pool"]
