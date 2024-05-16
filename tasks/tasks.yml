@@ -59,4 +59,30 @@ update_host_task:
         - --data
       type: json.loads
       help: "The data of hosts to be updated in the host-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of hosts"
-
+host_health_monitor_task : 
+      path : tasks/host_maintenance/host_health_monitor/host_health_monitor.py
+      class: HostHealthMonitorTask
+      params : 
+        group:
+          flags:
+            - --group
+          type: str
+          nargs: '+'
+          help: "The groups for which the host health monitor should be run. By default all groups are picked"
+        host_tasks:
+          flags:
+            - --host_tasks
+          type: str
+          nargs: '+'
+          help: "The tasks that have to be run as part of the host health monitor for host collection. By default all tasks are run"
+        vm_tasks:
+          flags:
+            - --vm_tasks
+          type: str
+          nargs: '+'
+          help: "The tasks that have to be run as part of the host health monitor for vms collection. By default all tasks are run"
+        update_docs:
+          flags:
+            - --update_docs
+          help: "Updates all docs of the given group belonging to QE-host-pool"
+          type: bool
