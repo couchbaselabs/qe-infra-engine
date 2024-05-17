@@ -30,7 +30,6 @@ class Task:
         self.logger.error(exception)
         raise exception
 
-
     def add_sub_task(self, subtask, params):
         self.logger.debug(f"Sub task {subtask.__name__} added for execution")
         subtask_id = f'{subtask.__name__}_{uuid.uuid4()}'
