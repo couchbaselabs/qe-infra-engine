@@ -230,7 +230,22 @@ class AddHostTask(Task):
             exception = f"Cannot add server to XenOrchestra : {e}"
             self.set_subtask_exception(exception)
 
-        time.sleep(10)
+        # Checking status for a maximum of 30 minutes since XenOrchestra can take a while to connect to XenServer
+        start_time = time.time()
+        found_server_status = False
+        while not found_server_status and (time.time() - start_time <= 1800):
+            time.sleep(30)
+            try:
+                server_status = xen_orchestra_helper.get_server_status(label=label,
+                                                                    host=hostname)
+                if "error" in server_status:
+                    exception = f"Waiting for a while as fetch server status from XenOrchestra failed : {server_status}"
+                    self.logger.error(exception)
+                else:
+                    found_server_status = True
+            except Exception as e:
+                exception = f"Waiting for a while as fetch server status from XenOrchestra failed : {e} "
+                self.logger.error(exception)
 
         try:
             server_status = xen_orchestra_helper.get_server_status(label=label,
