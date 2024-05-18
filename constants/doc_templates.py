@@ -50,11 +50,11 @@ SLAVE_TEMPLATE = {
     "os" : "",
     "os_version" : "",
     "state" : "",
-    "cpu" : "",
     "memory" : "",
     "tags" : {},
     "mac_address": "",
     "origin": "",
     "name_label" : "",
-    "jenkins_host" : ""
+    "jenkins_host" : "",
+    "num_executors" : 0
 }
