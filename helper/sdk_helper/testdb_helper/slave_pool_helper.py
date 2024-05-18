@@ -41,13 +41,13 @@ class SlavePoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
                     self._initialized.set()
 
     def upsert_slave_to_slave_pool(self, doc):
-        key = doc["ipaddr"]
-        return self.upsert_doc(client=self.server_pool_client,
+        key = doc["doc_key"]
+        return self.upsert_doc(client=self.slave_doc_connection,
                                key=key,
                                doc=doc,
-                               bucket_name=self.server_pool_bucket_name,
-                               scope=self.server_pool_scope,
-                               collection=self.server_pool_collection)
+                               bucket_name=self.slave_pool_bucket_name,
+                               scope=self.slave_doc_scope_name,
+                               collection=self.slave_doc_collection_name)
 
 
 
