@@ -92,8 +92,7 @@ class ChangeNodesTask(Task):
             sub_tasks.append([node["old_ipaddr"], subtaskid])
         for old_ipaddr, subtask_id in sub_tasks:
             task_result = self.get_sub_task_result(subtask_id=subtask_id)
-            if old_ipaddr not in self.task_result.subtasks:
-                self.task_result.subtasks[old_ipaddr] = {}
+            self.task_result.subtasks[old_ipaddr] = task_result
 
         self.add_nodes_task.execute()
 
