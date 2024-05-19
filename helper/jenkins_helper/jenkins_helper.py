@@ -2,6 +2,7 @@ import threading
 import logging
 import re
 import json
+from xml.etree import ElementTree as ET
 from constants.jenkins import JENKINS_SSH_LAUNCHER_CREDS
 from util.rest_util.rest_client import RestClient, RestMethods
 
@@ -129,6 +130,42 @@ class JenkinsHelper:
                                                     params=slave_config_form_data,
                                                     header_params=header_params,
                                                     content_type="application/x-www-form-urlencoded")
+        if status != 200:
+            raise Exception(f"Request to {self.url+endpoint} failed with status {status} : {response}")
+        return status, response
+    
+    def get_slave_properties(self, slave_name):
+        endpoint = f"computer/{slave_name}/config.xml"
+        status, response = self.rest_client.request(endpoint)
+        if status != 200:
+            raise Exception(f"Request to {self.url+endpoint} failed with status {status} : {response}")
+        return status, response
+    
+    def update_slave_properties(self, slave_name: str, labels:list = None, num_executors:int = None,
+                                remote_fs:str = None):
+        config_xml = self.get_slave_properties(slave_name).text
+
+        # Parse the XML
+        root = ET.fromstring(config_xml)
+
+        # Update the fields
+        if num_executors is not None:
+            for numExecutors in root.iter('numExecutors'):
+                numExecutors.text = num_executors
+        if remote_fs is not None:
+            for remoteFS in root.iter('remoteFS'):
+                remoteFS.text = remote_fs
+        if labels is not None:
+            for labels in root.iter('label'):
+                labels.text = " ".join(labels)
+
+        # Convert the updated XML back to a string
+        updated_config_xml = ET.tostring(root, encoding='utf8').decode('utf8')
+
+        endpoint = f"computer/{slave_name}/config.xml"
+        status, response = self.rest_client.request(endpoint,
+                                                    method=RestMethods.POST,
+                                                    params=updated_config_xml)
         if status != 200:
             raise Exception(f"Request to {self.url+endpoint} failed with status {status} : {response}")
         return status, response
