@@ -141,20 +141,26 @@ class JenkinsHelper:
             raise Exception(f"Request to {self.url+endpoint} failed with status {status} : {response}")
         return status, response
     
-    def update_slave_properties(self, slave_name: str, labels:list = None, num_executors:int = None,
-                                remote_fs:str = None):
+    def update_slave_properties(self, slave_name: str, description:str = None, labels:list = None, num_executors:int = None,
+                                remote_fs:str = None, usage_mode:str = None):
         config_xml = self.get_slave_properties(slave_name).text
 
         # Parse the XML
         root = ET.fromstring(config_xml)
 
         # Update the fields
+        if description is not None:
+            for description in root.iter('description'):
+                description.text = description
         if num_executors is not None:
             for numExecutors in root.iter('numExecutors'):
                 numExecutors.text = num_executors
         if remote_fs is not None:
             for remoteFS in root.iter('remoteFS'):
                 remoteFS.text = remote_fs
+        if usage_mode is not None:
+            for usage_mode in root.iter('usage_mode'):
+                usage_mode.text = usage_mode
         if labels is not None:
             for labels in root.iter('label'):
                 labels.text = " ".join(labels)

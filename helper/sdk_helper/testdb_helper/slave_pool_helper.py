@@ -57,9 +57,9 @@ class SlavePoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
                                scope=self.slave_doc_scope_name,
                                collection=self.slave_doc_collection_name)
 
-    def get_slave(self, ipaddr):
+    def get_slave(self, slave_name):
         return self.get_doc(client=self.slave_doc_connection,
-                            key=ipaddr)
+                            key=slave_name)
 
 
 
