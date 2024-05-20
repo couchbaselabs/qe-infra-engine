@@ -21,7 +21,7 @@ class AggregateAPI(Resource):
         500: 'Internal Server Error',
         200: 'Success'
     })
-    @nodes_aggregate_api.response(200, 'Success', nodes_aggregate_api.model('ResponseModel', {
+    @nodes_aggregate_api.response(200, 'Success', nodes_aggregate_api.model('ResponseModelAggregate', {
     'field_value1': fields.Integer(description='Total number of nodes with that field value1'),
     'field_value2': fields.Float(description='Total number of nodes with that field value12'),
 }))
@@ -31,8 +31,8 @@ class AggregateAPI(Resource):
 
     def post(self):
         """
-        Post method for fetching all data with the possible filters
-        Fetches data in a paginated manner with filters and the fields needed
+        Post method for fetching all aggregates of a pivot
+        Fetches the count of distinct values of a pivot.
         """
         args = nodes_aggregate_api.payload
         filters = args['filters']

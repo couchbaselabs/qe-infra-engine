@@ -25,7 +25,7 @@ class DataAPI(Resource):
         500: 'Internal Server Error',
         200: 'Success'
     })
-    @nodes_data_api.response(200, 'Success', nodes_data_api.model('ResponseModel', {
+    @nodes_data_api.response(200, 'Success', nodes_data_api.model('ResponseModelData', {
     'total_nodes': fields.Integer(description='Total number of nodes'),
     'total_pages': fields.Float(description='Total number of pages'),
     'page': fields.Integer(description='Current page number'),
