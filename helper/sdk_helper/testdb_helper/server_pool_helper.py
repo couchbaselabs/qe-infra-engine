@@ -61,3 +61,13 @@ class ServerPoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
         query = f"SELECT META().id,* FROM `{self.server_pool_bucket_name}`.`{self.server_pool_scope}`.`{self.server_pool_collection}` WHERE ipaddr in {ipaddr}"
         self.logger.info(f"Running query {query}")
         return self.server_pool_client.query(query, retries=5)
+    
+    def fetch_distinct_values_array(self, field):
+        query = f"SELECT DISTINCT unnested_element FROM `{self.server_pool_bucket_name}`.`{self.server_pool_scope}`.`{self.server_pool_collection}` UNNEST {field} AS unnested_element;"
+        self.logger.info(f"Running query {query}")
+        return self.server_pool_client.query(query, retries=5)
+    
+    def fetch_distinct_values(self, field):
+        query = f"SELECT DISTINCT {field} FROM `{self.server_pool_bucket_name}`.`{self.server_pool_scope}`.`{self.server_pool_collection}`"
+        self.logger.info(f"Running query {query}")
+        return self.server_pool_client.query(query, retries=5)
