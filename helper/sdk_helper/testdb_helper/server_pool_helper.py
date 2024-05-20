@@ -94,3 +94,17 @@ class ServerPoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
         query = f"SELECT {','.join(fields)} FROM `{self.server_pool_bucket_name}`.`{self.server_pool_scope}`.`{self.server_pool_collection}` {where_clause} LIMIT {page} OFFSET {offset};"
         self.logger.info(f"Running query {query}")
         return self.server_pool_client.query(query, retries=5)
+    
+    def fetch_aggregate_state(self, filters):
+        where_clause = "WHERE"
+        for count, filter in enumerate(filters):
+            if count > 0:
+                where_clause += f"OR "
+            where_clause += f"(ANY v IN {filter} SATISFIES v IN {filters[filter]} END)"
+            where_clause += f"OR {filter} IN {filters[filter]}"
+        query = f"SELECT state, COUNT(*) as count FROM `{self.server_pool_bucket_name}`.`{self.server_pool_scope}`.`{self.server_pool_collection}` {where_clause} GROUP BY state;"
+        self.logger.info(f"Running query {query}")
+        return self.server_pool_client.query(query, retries=5)
+    
+    def fetch_aggregate_tags(self, filters):
+        raise NotImplementedError("Not Implemented")

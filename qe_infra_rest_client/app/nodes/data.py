@@ -7,7 +7,7 @@ from helper.sdk_helper.testdb_helper.server_pool_helper import ServerPoolSDKHelp
 
 logger = logging.getLogger("rest")
 
-post_request_model = nodes_data_api.model('PostRequest', {
+post_request_model = nodes_data_api.model('PostRequestData', {
     'filters': fields.Nested(nodes_data_api.model('Filters', {
         'filter1': fields.List(fields.String(description='filter1 and the list of values for the filter')),
         'filter2': fields.List(fields.String(description='filter2 and the list of values for the filter'))
@@ -21,7 +21,7 @@ post_request_model = nodes_data_api.model('PostRequest', {
 @nodes_data_api.route('/fetchData')
 class DataAPI(Resource):
 
-    @nodes_data_api.doc('post_query', responses={
+    @nodes_data_api.doc('post_query_data', responses={
         500: 'Internal Server Error',
         200: 'Success'
     })
