@@ -134,6 +134,13 @@ class JenkinsHelper:
             raise Exception(f"Request to {self.url+endpoint} failed with status {status} : {response}")
         return status, response
     
+    def remove_slave(self, slave_name):
+        endpoint = f"/computer/{slave_name}/doDelete"
+        status, response = self.rest_client.request(endpoint, method=RestMethods.POST)
+        if status != 200:
+            raise Exception(f"Request to {self.url+endpoint} failed with status {status} : {response}")
+        return status, response
+    
     def get_slave_properties(self, slave_name):
         endpoint = f"computer/{slave_name}/config.xml"
         status, response = self.rest_client.request(endpoint)
