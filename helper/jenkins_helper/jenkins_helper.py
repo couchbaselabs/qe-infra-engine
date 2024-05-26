@@ -135,7 +135,7 @@ class JenkinsHelper:
     
     def remove_slave(self, slave_name):
         endpoint = f"/computer/{slave_name}/doDelete"
-        status, response = self.rest_client.request(endpoint, method=RestMethods.DELETE)
+        status, response = self.rest_client.request(endpoint, method=RestMethods.POST)
         if status != 200:
             raise Exception(f"Request to {self.url+endpoint} failed with status {status} : {response}")
         return status, response

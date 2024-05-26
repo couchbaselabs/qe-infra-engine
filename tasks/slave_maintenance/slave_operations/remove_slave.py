@@ -3,6 +3,7 @@ from tasks.task import Task
 from tasks.task_result import TaskResult
 from helper.sdk_helper.testdb_helper.slave_pool_helper import SlavePoolSDKHelper
 from helper.jenkins_helper.jenkins_helper_factory import JenkinsHelperFactory
+from constants.jenkins import JENKINS_URLS
 
 class RemoveSlavesTask(Task):
 
@@ -10,10 +11,10 @@ class RemoveSlavesTask(Task):
         if "slave" not in params:
             self.set_subtask_exception(ValueError("Invalid arguments passed"))
         slave = params["slave"]
-        if "name" not in params:
+        if "name" not in slave:
             self.set_subtask_exception(ValueError(f"name key not found in slave {slave}"))
-        name = slave["slave"]
-        result = {}
+
+        name = slave["name"]
 
         try:
             slave_pool_helper = SlavePoolSDKHelper()
@@ -23,7 +24,7 @@ class RemoveSlavesTask(Task):
             self.set_subtask_exception(exception)
 
         try:
-            slave_doc = slave_pool_helper.get_slave_pool_doc(name)
+            slave_doc = eval(slave_pool_helper.get_slave_pool_doc(name))
             self.logger.info(f"Slave with name {name} successfully found in slave-pool")
         except Exception as e:
             exception = f"Cannot find slave with name {name} in slave-pool : {e}"
@@ -33,10 +34,10 @@ class RemoveSlavesTask(Task):
         ipaddr = slave_doc["ipaddr"]
 
         try:
-            jenkins_helper = JenkinsHelperFactory.fetch_helper(jenkins_host)
+            jenkins_helper = JenkinsHelperFactory.fetch_helper(JENKINS_URLS[jenkins_host])
         except Exception as e:
             exception = f"Cannot fetch helper for slave {name}:{ipaddr} : {e}"
-            return result
+            self.set_subtask_exception(exception)
 
         try:
             res_jenkins_status, res_jenkins_response = jenkins_helper.remove_slave(name)
@@ -46,15 +47,16 @@ class RemoveSlavesTask(Task):
             self.set_subtask_exception(exception)
 
         task_result.result_json = {}
-        task_result.result_json["remove_slave_from_jenkins"] = [res_jenkins_status, res_jenkins_response]
+        task_result.result_json["remove_slave_from_jenkins"] = [str(res_jenkins_status), str(res_jenkins_response)]
 
     def remove_slave_from_slave_pool(self, task_result: TaskResult, params: dict) -> None:
         if "slave" not in params:
             self.set_subtask_exception(ValueError("Invalid arguments passed"))
         slave = params["slave"]
-        if "name" not in params:
+        if "name" not in slave:
             self.set_subtask_exception(ValueError(f"name key not found in slave {slave}"))
-        name = slave["slave"]
+
+        name = slave["name"]
 
         try:
             slave_pool_helper = SlavePoolSDKHelper()
