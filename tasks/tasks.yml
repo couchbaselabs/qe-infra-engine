@@ -119,3 +119,17 @@ remove_slaves_task:
         - --delete_from_jenkins
       type: bool
       help: Pass true if the slave needs to be deleted from jenkins. Pass false if the slave need not be removed from jenkins, but just the slave-pool
+change_slaves_task:
+  path : tasks/slave_maintenance/slave_operations/change_slave.py
+  class : ChangeSlavesTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of slaves to be changed in slave-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of slaves"
+    change_in_jenkins:
+      flags:
+        - --change_in_jenkins
+      type: bool
+      help: Pass true if the slave needs to be changed in jenkins. Pass false if the slave need not be changed in jenkins, but just the slave-pool
