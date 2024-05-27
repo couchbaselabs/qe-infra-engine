@@ -142,3 +142,12 @@ disconnect_slaves_task:
         - --data
       type: json.loads
       help: "The data of slaves to be disconnected in jenkins. The data is expected to be a json string. The json should comprise of a list of dictionary of slaves"
+reconnect_slaves_task:
+  path : tasks/slave_maintenance/slave_operations/reconnect_slave.py
+  class : ReconnectSlavesTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of slaves to be reconnected in jenkins. The data is expected to be a json string. The json should comprise of a list of dictionary of slaves"
