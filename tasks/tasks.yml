@@ -133,3 +133,12 @@ change_slaves_task:
         - --change_in_jenkins
       type: bool
       help: Pass true if the slave needs to be changed in jenkins. Pass false if the slave need not be changed in jenkins, but just the slave-pool
+disconnect_slaves_task:
+  path : tasks/slave_maintenance/slave_operations/disconnect_slave.py
+  class : DisconnectSlavesTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of slaves to be disconnected in jenkins. The data is expected to be a json string. The json should comprise of a list of dictionary of slaves"
