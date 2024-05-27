@@ -182,9 +182,10 @@ class JenkinsHelper:
             raise Exception(f"Request to {self.url+endpoint} failed with status {status} : {response}")
         return status, response
     
-    def disconnect_slave(self, slave_name, message):
+    def disconnect_slave(self, slave_name:str, message:str):
         endpoint = f"/computer/{slave_name}/doDisconnect?offlineMessage={message}"
-        status, response = self.rest_client.request(endpoint)
+        status, response = self.rest_client.request(endpoint,
+                                                    method=RestMethods.POST)
         if status != 200:
             raise Exception(f"Request to {self.url+endpoint} failed with status {status} : {response}")
         return status, response
