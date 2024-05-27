@@ -1,7 +1,7 @@
-node_health_monitor_task : 
+node_health_monitor_task :
       path : tasks/node_maintenance/node_health_monitor/node_health_monitor.py
       class: NodeHealthMonitorTask
-      params : 
+      params :
         poolId:
           flags:
             - --poolId
@@ -59,10 +59,10 @@ update_host_task:
         - --data
       type: json.loads
       help: "The data of hosts to be updated in the host-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of hosts"
-host_health_monitor_task : 
+host_health_monitor_task :
       path : tasks/host_maintenance/host_health_monitor/host_health_monitor.py
       class: HostHealthMonitorTask
-      params : 
+      params :
         group:
           flags:
             - --group
@@ -105,3 +105,49 @@ add_slaves_task:
         - --initialize_slave
       type: bool
       help: Pass true if the slave needs initialized. Pass false if the slave need not be initialized, but just the slave-pool/jenkins
+remove_slaves_task:
+  path : tasks/slave_maintenance/slave_operations/remove_slave.py
+  class : RemoveSlavesTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of slaves to be removed from slave-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of slaves"
+    delete_from_jenkins:
+      flags:
+        - --delete_from_jenkins
+      type: bool
+      help: Pass true if the slave needs to be deleted from jenkins. Pass false if the slave need not be removed from jenkins, but just the slave-pool
+change_slaves_task:
+  path : tasks/slave_maintenance/slave_operations/change_slave.py
+  class : ChangeSlavesTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of slaves to be changed in slave-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of slaves"
+    change_in_jenkins:
+      flags:
+        - --change_in_jenkins
+      type: bool
+      help: Pass true if the slave needs to be changed in jenkins. Pass false if the slave need not be changed in jenkins, but just the slave-pool
+disconnect_slaves_task:
+  path : tasks/slave_maintenance/slave_operations/disconnect_slave.py
+  class : DisconnectSlavesTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of slaves to be disconnected in jenkins. The data is expected to be a json string. The json should comprise of a list of dictionary of slaves"
+reconnect_slaves_task:
+  path : tasks/slave_maintenance/slave_operations/reconnect_slave.py
+  class : ReconnectSlavesTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of slaves to be reconnected in jenkins. The data is expected to be a json string. The json should comprise of a list of dictionary of slaves"

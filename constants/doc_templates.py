@@ -56,5 +56,7 @@ SLAVE_TEMPLATE = {
     "origin": "",
     "name_label" : "",
     "jenkins_host" : "",
-    "num_executors" : 0
+    "num_executors" : 0,
+    "remote_fs": "",
+    "usage_mode" : ""
 }

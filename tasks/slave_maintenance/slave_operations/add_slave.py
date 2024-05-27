@@ -93,7 +93,7 @@ class AddSlavesTask(Task):
         if "ipaddr" not in slave:
             self.set_subtask_exception(ValueError(f"ipaddr key is missing for the slave {slave}"))
         required_fields = ["ssh_username", "ssh_password", "name_label", "name", "description",
-                           "labels", "origin", "jenkins_host", "num_executors"]
+                           "labels", "origin", "jenkins_host", "num_executors", "usage_mode", "remote_fs"]
         for field in required_fields:
             if field not in slave:
                 exception = f"Field {field} not present for slave {slave['ipaddr']}"
@@ -161,6 +161,8 @@ class AddSlavesTask(Task):
         doc['jenkins_host'] = slave['jenkins_host']
         doc["doc_key"] = slave['name']
         doc["num_executors"] = slave["num_executors"]
+        doc["remote_fs"] = slave["remote_fs"]
+        doc["usage_mode"] = slave["usage_mode"]
 
         try:
             res = slave_pool_helper.upsert_slave_to_slave_pool(doc)
