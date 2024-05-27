@@ -1,0 +1,135 @@
+node_health_monitor_task :
+      path : tasks/node_maintenance/node_health_monitor/node_health_monitor.py
+      class: NodeHealthMonitorTask
+      params :
+        poolId:
+          flags:
+            - --poolId
+          type: str
+          nargs: '+'
+          help: "The poolId for which the node health monitor should be run. By default all poolIds are picked"
+        tasks:
+          flags:
+            - --tasks
+          type: str
+          nargs: '+'
+          help: "The tasks that have to be run as part of the node health monitor. By default all tasks are run"
+add_nodes_task:
+  path : tasks/node_maintenance/node_operations/add_nodes.py
+  class : AddNodesTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of nodes to be added to the server-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of nodes"
+change_nodes_task:
+  path : tasks/node_maintenance/node_operations/change_nodes.py
+  class : ChangeNodesTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of nodes to be changed in the server-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of nodes"
+add_hosts_task:
+  path : tasks/host_maintenance/host_operations/add_hosts.py
+  class : AddHostTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of hosts to be added in the host-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of hosts"
+remove_hosts_task:
+  path : tasks/host_maintenance/host_operations/remove_hosts.py
+  class : RemoveHostsTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of hosts to be removed from the host-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of hosts"
+update_host_task:
+  path : tasks/host_maintenance/host_operations/update_hosts.py
+  class : UpdateHostsTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of hosts to be updated in the host-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of hosts"
+host_health_monitor_task :
+      path : tasks/host_maintenance/host_health_monitor/host_health_monitor.py
+      class: HostHealthMonitorTask
+      params :
+        group:
+          flags:
+            - --group
+          type: str
+          nargs: '+'
+          help: "The groups for which the host health monitor should be run. By default all groups are picked"
+        host_tasks:
+          flags:
+            - --host_tasks
+          type: str
+          nargs: '+'
+          help: "The tasks that have to be run as part of the host health monitor for host collection. By default all tasks are run"
+        vm_tasks:
+          flags:
+            - --vm_tasks
+          type: str
+          nargs: '+'
+          help: "The tasks that have to be run as part of the host health monitor for vms collection. By default all tasks are run"
+        update_docs:
+          flags:
+            - --update_docs
+          help: "Updates all docs of the given group belonging to QE-host-pool"
+          type: bool
+add_slaves_task:
+  path : tasks/slave_maintenance/slave_operations/add_slave.py
+  class : AddSlavesTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of slaves to be added to the slave-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of slaves"
+    add_to_jenkins:
+      flags:
+        - --add_to_jenkins
+      type: bool
+      help: Pass true if the slave needs to be added to jenkins. Pass false if the slave need not be added to jenkins, but just the slave-pool
+    initialize_slave:
+      flags:
+        - --initialize_slave
+      type: bool
+      help: Pass true if the slave needs initialized. Pass false if the slave need not be initialized, but just the slave-pool/jenkins
+remove_slaves_task:
+  path : tasks/slave_maintenance/slave_operations/remove_slave.py
+  class : RemoveSlavesTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of slaves to be removed from slave-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of slaves"
+    delete_from_jenkins:
+      flags:
+        - --delete_from_jenkins
+      type: bool
+      help: Pass true if the slave needs to be deleted from jenkins. Pass false if the slave need not be removed from jenkins, but just the slave-pool
+change_slaves_task:
+  path : tasks/slave_maintenance/slave_operations/change_slave.py
+  class : ChangeSlavesTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of slaves to be changed in slave-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of slaves"
+    change_in_jenkins:
+      flags:
+        - --change_in_jenkins
+      type: bool
+      help: Pass true if the slave needs to be changed in jenkins. Pass false if the slave need not be changed in jenkins, but just the slave-pool

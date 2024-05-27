@@ -1,145 +1,149 @@
-import sys
-import os
-
-script_dir = os.path.dirname(os.path.realpath(__file__))
-project_paths = [
-    os.path.join(script_dir, "..", "..", ".."),
-    os.path.join(script_dir, "..", "..", "..", "util", "ssh_util")
-]
-for project_path in project_paths:
-    if project_path not in sys.path:
-        sys.path.append(project_path)
-
-import logging.config
-import argparse
-import concurrent
-import datetime
-import json
+from typing import Optional
+from tasks.task import Task
+from tasks.task_result import TaskResult
 from helper.sdk_helper.testdb_helper.slave_pool_helper import SlavePoolSDKHelper
 from helper.jenkins_helper.jenkins_helper_factory import JenkinsHelperFactory
-import tasks.slave_maintenance.slave_operations.add_slave as add_slave_task
+from constants.jenkins import JENKINS_URLS
 
-logger = logging.getLogger("tasks")
+class RemoveSlavesTask(Task):
 
-def remove_slaves_parallel(slave_data, max_workers=None):
-    if not max_workers:
-        num_cores = os.cpu_count()
-        max_workers = num_cores if num_cores is not None else 10
+    def remove_slave_from_jenkins(self, task_result: TaskResult, params: dict) -> None:
+        if "slave" not in params:
+            self.set_subtask_exception(ValueError("Invalid arguments passed"))
+        slave = params["slave"]
+        if "name" not in slave:
+            self.set_subtask_exception(ValueError(f"name key not found in slave {slave}"))
 
-    final_result = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(remove_slave, slave): slave for slave in slave_data}
-        for future in concurrent.futures.as_completed(futures):
-            slave = futures[future]
-            result = future.result()
-            final_result[slave["ipaddr"]] = result
+        name = slave["name"]
 
-def remove_slave(slave):
-    ipaddr = slave["ipaddr"]
-    result = {}
-
-    try:
-        slave_pool_helper = SlavePoolSDKHelper()
-        logger.info(f"Connection to Slave Pool successful")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot connect to Slave Pool using SDK : {e}"
-        logger.error(result["reason"])
-        return result
-    
-    try:
-        slave_doc = slave_pool_helper.get_slave(ipaddr)
-        logger.info(f"Doc with ipaddr {ipaddr} successfully found in slave-pool")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot find ipaddr {ipaddr} doc in slave-pool : {e}"
-        logger.error(result["reason"])
-        return result
-    
-    slave_name = slave_doc["name"]
-    jenkins_host = slave_doc["jenkins_host"]
-
-    try:
-        jenkins_helper = JenkinsHelperFactory.fetch_helper(jenkins_host)
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot fetch helper for slave {ipaddr}:{slave_name} : {e}"
-        logger.error(result["reason"])
-        return result
-
-    # Step 1 - Delete from jenkins
-    try:
-        res_jenkins = jenkins_helper.remove_slave(slave_name)
-        logger.info(f"Slave with ipaddr {ipaddr} and name {slave_name} successfully removed from jenkins")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot remove slave {ipaddr}:{slave_name} from jenkins : {e}"
-        logger.error(result["reason"])
-        return result
-    
-    # Step 2 - Delete from slave-pool
-    try:
-        res_slave_pool = slave_pool_helper.delete_slave(ipaddr)
-        if res_slave_pool:
-            logger.info(f"Doc with ipaddr {ipaddr} successfully deleted")
-        else:
-            result["result"] = False
-            result["reason"] = f"Cannot delete ipaddr {ipaddr} doc in slave-pool : {e}"
-            logger.error(result["reason"])
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot find ipaddr {ipaddr} doc in slave-pool : {e}"
-        logger.error(result["reason"])
-        return result
-    
-    result["remove_slave_from_jenkins"] = res_jenkins
-    result["remove_slave_from_slave_pool"] = res_slave_pool
-    result["result"] = True
-    return result
-
-def parse_arguments():
-    parser = argparse.ArgumentParser(description="A tool to delete slaves in pool")
-    parser.add_argument("--data", type=str, help="The data of all slaves")
-    return parser.parse_args()
-
-def main():
-    logging_conf_path = os.path.join(script_dir, "..", "..", "..", "logging.conf")
-    logging.config.fileConfig(logging_conf_path)
-
-    args = parse_arguments()
-    if not args.data:
-        logger.error("No slave data is passed to add")
-        return
-    try:
-        slave_data = eval(args.data)
-    except Exception as e:
-        logger.error(f"The format of data is wrong : {e}")
-        return
-
-    logger.info(f"The number of slaves to delete: {len(slave_data)}")
-
-    for slave in slave_data:
-        if "ipaddr" not in slave:
-            logger.error("Field new_ipaddr missing from one of the slaves")
-            return
-
-    results = remove_slaves_parallel(slave_data)
-
-    current_time = datetime.datetime.now()
-    timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
-    result_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", f"results_{timestamp_string}")
-    if not os.path.exists(result_dir_path):
-        logger.info(f"Creating directory {result_dir_path}")
         try:
-            os.makedirs(result_dir_path)
+            slave_pool_helper = SlavePoolSDKHelper()
+            self.logger.info(f"Connection to Slave Pool successful")
         except Exception as e:
-            logger.error(f"Error creating directory {result_dir_path} : {e}")
-            return 
-    logger.info(f"Successfully created directory {result_dir_path}")
-    local_file_path = os.path.join(result_dir_path, f"result.json")
-    with open(local_file_path, "w") as json_file:
-        json.dump(results, json_file)
+            exception = f"Cannot connect to Slave Pool using SDK : {e}"
+            self.set_subtask_exception(exception)
 
+        try:
+            slave_doc = eval(slave_pool_helper.get_slave_pool_doc(name))
+            self.logger.info(f"Slave with name {name} successfully found in slave-pool")
+        except Exception as e:
+            exception = f"Cannot find slave with name {name} in slave-pool : {e}"
+            self.set_subtask_exception(exception)
 
-if __name__ == "__main__":
-    main()
+        jenkins_host = slave_doc["jenkins_host"]
+        ipaddr = slave_doc["ipaddr"]
+
+        try:
+            jenkins_helper = JenkinsHelperFactory.fetch_helper(JENKINS_URLS[jenkins_host])
+        except Exception as e:
+            exception = f"Cannot fetch helper for slave {name}:{ipaddr} : {e}"
+            self.set_subtask_exception(exception)
+
+        try:
+            res_jenkins_status, res_jenkins_response = jenkins_helper.remove_slave(name)
+            self.logger.info(f"Slave with ipaddr {ipaddr} and name {name} successfully removed from jenkins")
+        except Exception as e:
+            exception = f"Cannot remove slave {ipaddr}:{name} from jenkins : {e}"
+            self.set_subtask_exception(exception)
+
+        task_result.result_json = {}
+        task_result.result_json["remove_slave_from_jenkins"] = [str(res_jenkins_status), str(res_jenkins_response)]
+
+    def remove_slave_from_slave_pool(self, task_result: TaskResult, params: dict) -> None:
+        if "slave" not in params:
+            self.set_subtask_exception(ValueError("Invalid arguments passed"))
+        slave = params["slave"]
+        if "name" not in slave:
+            self.set_subtask_exception(ValueError(f"name key not found in slave {slave}"))
+
+        name = slave["name"]
+
+        try:
+            slave_pool_helper = SlavePoolSDKHelper()
+            self.logger.info(f"Connection to Slave Pool successful")
+        except Exception as e:
+            exception = f"Cannot connect to Slave Pool using SDK : {e}"
+            self.set_subtask_exception(exception)
+
+        try:
+            res_slave_pool = slave_pool_helper.delete_slave_pool_doc(name)
+            if res_slave_pool:
+                self.logger.info(f"Doc with slave name {name} successfully deleted")
+            else:
+                exception = f"Cannot delete slave name {name} doc in slave-pool"
+                self.set_subtask_exception(exception)
+        except Exception as e:
+            exception = f"Cannot find name {name} doc in slave-pool : {e}"
+            self.set_subtask_exception(exception)
+
+        task_result.result_json = {}
+        task_result.result_json["remove_slave_from_slave_pool"] = res_slave_pool
+
+    def __init__(self, params:dict, max_workers: Optional[int]=None):
+        """
+            Initialize a RemoveSlavesTask with the given params.
+            Args:
+            params (dict): The dictionary with the following fields
+                Valid keys:
+                    - data (list) : List of slaves which has to be removed from slave-pool
+                        Each slave is a dictionary with many fields
+                    - delete_from_jenkins (bool) : True if the slave needs to be deleted from jenkins.
+                        False if the slave need not be deleted from jenkins, but just the slave-pool
+        """
+        task_name = RemoveSlavesTask.__name__
+        if max_workers is None:
+            max_workers = 100
+        super().__init__(task_name, max_workers)
+
+        if "data" not in params or params["data"] is None:
+            exception = ValueError(f"Data is not present to delete from slave-pool")
+            self.set_exception(exception)
+        elif not isinstance(params["data"], list):
+            exception = ValueError(f"data param has to be a list : {params['data']}")
+            self.set_exception(exception)
+        else:
+            self.data = params["data"]
+
+        if "delete_from_jenkins" not in params or params["delete_from_jenkins"] is None:
+            exception = ValueError(f"delete_from_jenkins is not present in params : {params}")
+            self.set_exception(exception)
+        elif not isinstance(params["delete_from_jenkins"], bool):
+            exception = ValueError(f"delete_from_jenkins param has to be a bool : {params['data']}")
+            self.set_exception(exception)
+        else:
+            self.delete_from_jenkins = params["delete_from_jenkins"]
+
+        for slave in self.data:
+            if "name" not in slave:
+                exception = ValueError(f"name missing from slave : {slave}")
+                self.set_exception(exception)
+
+        self.sub_task_functions = []
+        if self.delete_from_jenkins:
+            self.sub_task_functions.append(self.remove_slave_from_jenkins)
+        self.sub_task_functions.append(self.remove_slave_from_slave_pool)
+
+    def execute(self):
+        self.start_task()
+
+        for sub_task_function in self.sub_task_functions:
+            sub_tasks = []
+            for slave in self.data:
+                params = {"slave" : slave}
+                subtaskid = self.add_sub_task(sub_task_function, params)
+                sub_tasks.append([slave["name"], subtaskid])
+            for doc_key, subtask_id in sub_tasks:
+                task_result = self.get_sub_task_result(subtask_id=subtask_id)
+                if doc_key not in self.task_result.subtasks:
+                    self.task_result.subtasks[doc_key] = {}
+                self.task_result.subtasks[doc_key][sub_task_function.__name__] = task_result
+
+        self.complete_task(result=True)
+
+    def generate_json_result(self, timeout=3600):
+        TaskResult.generate_json_result(self.task_result, timeout=timeout)
+        for doc_key in self.task_result.result_json:
+           for sub_task_name in self.task_result.result_json[doc_key]:
+               res = TaskResult.generate_json_result(self.task_result.subtasks[doc_key][sub_task_name], timeout=timeout)
+               self.task_result.result_json[doc_key][sub_task_name] = res
+        return self.task_result.result_json
