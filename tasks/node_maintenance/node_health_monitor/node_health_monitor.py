@@ -1,158 +1,515 @@
-import sys
-import os
-
-# Adding project path into the sys paths for scanning all the modules
-script_dir = os.path.dirname(os.path.realpath(__file__))
-project_paths = [
-    os.path.join(script_dir, "..", "..", ".."),
-    os.path.join(script_dir, "..", "..", "..", "util", "ssh_util")
-]
-for project_path in project_paths:
-    if project_path not in sys.path:
-        sys.path.append(project_path)
-
+import paramiko, paramiko.ssh_exception
+import socket
+from tasks.task import Task
+from tasks.task_result import TaskResult
 from helper.sdk_helper.testdb_helper.server_pool_helper import ServerPoolSDKHelper
+from helper.sdk_helper.testdb_helper.host_pool_helper import HostSDKHelper
 from util.ssh_util.node_infra_helper.remote_connection_factory import RemoteConnectionObjectFactory
-import tasks.node_maintenance.node_health_monitor.node_health_monitor_utils as node_health_monitor_utils
-import logging.config
-import concurrent
-import datetime
-import json
-import argparse
+from constants.doc_templates import NODE_TEMPLATE
 
-logger = logging.getLogger("tasks")
 
-def fetch_tasks(tasks : list):
-    tasks_dic = {}
-    result = {}
-    if len(tasks) == 0:
-        tasks_dic = node_health_monitor_utils.ALL_TASKS_DIC
-    else:
-        for task in tasks:
-            if task in node_health_monitor_utils.ALL_TASKS_DIC:
-                tasks_dic[task] = node_health_monitor_utils.ALL_TASKS_DIC[task]
-            else:
-                result["result"] = False
-                result["reason"] = f"Cannot find task : {task}"
-                logger.error(result["reason"])
-                return result
-    result["result"] = True
-    result["tasks_dic"] = tasks_dic
-    return result
+# TODO tasks
+'''
+1. Checking state and move from booked to available if its in booked state for more than 48hrs
+2. Checking status of ntp
+3. Checking status of directories and permissions on the nodes
+4. Checking status of reserved nodes
+'''
 
-def fetch_docs(poolId : list):
-    result = {}
-    try:
-        server_pool_helper = ServerPoolSDKHelper()
-        logger.info(f"Connection to Server Pool successful")
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot connect to Server Pool using SDK : {e}"
-        logger.error(result["reason"])
-        return result
-    try:
-        if len(poolId) > 0:
-            query_result = server_pool_helper.fetch_nodes_by_poolId(poolId)
+class NodeHealthMonitorTask(Task):
+
+    def check_connectivity_sub_task(self, task_result, params):
+        if "node" not in params:
+            self.set_subtask_exception(ValueError("Invalid arguments passed"))
+        node_doc = params["node"]
+        ipaddr = node_doc["ipaddr"]
+        try:
+            server_pool_helper = ServerPoolSDKHelper()
+            self.logger.info(f"Connection to Server Pool successful")
+        except Exception as e:
+            exception = f"Cannot connect to Server Pool using SDK : {e}"
+            self.set_subtask_exception(exception)
+
+        if "tags" not in node_doc:
+           node_doc["tags"] = {}
+
+        try:
+            RemoteConnectionObjectFactory.fetch_helper(ipaddr,"root","couchbase")
+            node_doc["tags"]["connection_check"] = True
+            # node_doc["state"] = "available" \
+            #     if node_doc["state"] == "unreachable"\
+            #         else node_doc["state"]
+        except Exception as e:
+            node_doc["tags"]["connection_check"] = False
+            # node_doc["state"] = "unreachable"
+
+        try:
+            res = server_pool_helper.upsert_node_to_server_pool(node_doc)
+            if not res:
+                exception = f"Cannot upsert node {ipaddr} with node-connectivity checks to server pool"
+                self.set_subtask_exception(exception)
+
+            self.logger.info(f"Document for node {ipaddr} with node-connectivity checks upserted to server pool successfuly")
+
+        except Exception as e:
+            exception = f"Cannot upsert node {ipaddr} with node-connectivity checks to server pool : {e}"
+            self.set_subtask_exception(exception)
+
+        task_result.result_json = {}
+        task_result.result_json["connection_check"] = node_doc["tags"]["connection_check"]
+
+    def check_connectivity2_sub_task(self, task_result, params):
+        if "node" not in params:
+            self.set_subtask_exception(ValueError("Invalid arguments passed"))
+        node_doc = params["node"]
+
+        ipaddr = node_doc["ipaddr"]
+
+        try:
+            server_pool_helper = ServerPoolSDKHelper()
+            self.logger.info(f"Connection to Server Pool successful")
+        except Exception as e:
+            exception = f"Cannot connect to Server Pool using SDK : {e}"
+            self.set_subtask_exception(exception)
+
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        retries = 5
+        connection = False
+        connection_errors = set()
+        for retry in range(retries):
+            self.logger.info(f'Checking ssh connectivity for node {ipaddr} retry {retry + 1} / {retries}')
+            try:
+                ssh.connect(ipaddr,
+                            username="root",
+                            password="couchbase")
+                ssh.close()
+                connection = True
+                connection_errors.add(None)
+                break
+            except paramiko.PasswordRequiredException as e:
+                connection = False
+                connection_errors.add("paramiko.PasswordRequiredException")
+                self.logger.error(f'Unable to connect to {ipaddr} : {e}')
+            except paramiko.BadAuthenticationType as e:
+                connection = False
+                connection_errors.add("paramiko.BadAuthenticationType")
+                self.logger.error(f'Unable to connect to {ipaddr} : {e}')
+            except paramiko.AuthenticationException as e:
+                connection = False
+                connection_errors.add("paramiko.AuthenticationException")
+                self.logger.error(f'Unable to connect to {ipaddr} : {e}')
+            except paramiko.BadHostKeyException as e:
+                connection = False
+                connection_errors.add("paramiko.BadHostKeyException")
+                self.logger.error(f'Unable to connect to {ipaddr} : {e}')
+            except paramiko.ChannelException as e:
+                connection = False
+                connection_errors.add("paramiko.ChannelException")
+                self.logger.error(f'Unable to connect to {ipaddr} : {e}')
+            except paramiko.ProxyCommandFailure as e:
+                connection = False
+                connection_errors.add("paramiko.ProxyCommandFailure")
+                self.logger.error(f'Unable to connect to {ipaddr} : {e}')
+            except paramiko.ConfigParseError as e:
+                connection = False
+                connection_errors.add("paramiko.ConfigParseError")
+                self.logger.error(f'Unable to connect to {ipaddr} : {e}')
+            except paramiko.CouldNotCanonicalize as e:
+                connection = False
+                connection_errors.add("paramiko.CouldNotCanonicalize")
+                self.logger.error(f'Unable to connect to {ipaddr} : {e}')
+            except paramiko.ssh_exception.NoValidConnectionsError as e:
+                connection = False
+                connection_errors.add("paramiko.NoValidConnectionsError")
+                self.logger.error(f'Unable to connect to {ipaddr} : {e}')
+            except socket.timeout as e:
+                connection = False
+                connection_errors.add("socket.timeout")
+                self.logger.error(f'Unable to connect to {ipaddr} : {e}')
+            except paramiko.SSHException as e:
+                connection = False
+                connection_errors.add("paramiko.SSHException")
+                self.logger.error(f'Unable to connect to {ipaddr} : {e}')
+            except socket.error as e:
+                connection = False
+                connection_errors.add("socket.error")
+                self.logger.error(f'Unable to connect to {ipaddr} : {e}')
+            except Exception as e:
+                connection = False
+                connection_errors.add("generic.Exception")
+                self.logger.error(f'Unable to connect to {ipaddr} : {e}')
+
+        if "tags" not in node_doc:
+            node_doc["tags"] = {}
+
+        node_doc["tags"]["connection_check"] = connection
+
+        if len(connection_errors) > 1:
+            node_doc["tags"]["connection_check_err"] = ' '.join(str(item) for item in connection_errors)
+
+        try:
+            res = server_pool_helper.upsert_node_to_server_pool(node_doc)
+            if not res:
+                exception = f"Cannot upsert node {ipaddr} with node-connectivity-2 checks to server pool"
+                self.set_subtask_exception(exception)
+
+            self.logger.info(f"Document for node {ipaddr} with node-connectivity-2 checks upserted to server pool successfuly")
+
+        except Exception as e:
+            exception = f"Cannot upsert node {ipaddr} with node-connectivity-2 checks to server pool : {e}"
+            self.set_subtask_exception(exception)
+
+        task_result.result_json = {}
+        task_result.result_json["connection_check"] = node_doc["tags"]["connection_check"]
+        if "connection_check_err" in node_doc["tags"]:
+            task_result.result_json["connection_check_err"] = node_doc["tags"]["connection_check_err"]
+
+    def field_consistency_sub_task(self, task_result, params):
+        if "node" not in params:
+            self.set_subtask_exception(ValueError("Invalid arguments passed"))
+        node_doc = params["node"]
+
+        ipaddr = node_doc["ipaddr"]
+
+        try:
+            server_pool_helper = ServerPoolSDKHelper()
+            self.logger.info(f"Connection to Server Pool successful")
+        except Exception as e:
+            exception = f"Cannot connect to Server Pool using SDK : {e}"
+            self.set_subtask_exception(exception)
+
+        if "tags" not in node_doc:
+            node_doc["tags"] = {}
+
+        fields_required = list(NODE_TEMPLATE.keys())
+        # TODO - Remove the following line after server-pool cleanup
+        fields_required.append("doc_key")
+
+        fields_absent = []
+        for field in fields_required:
+            if field not in node_doc:
+                fields_absent.append(field)
+
+        fields_extra = []
+        for field in node_doc:
+            if field not in fields_required:
+                fields_extra.append(field)
+
+        if len(fields_absent) == 0 and len(fields_extra) == 0:
+            node_doc["tags"]["field_consistency"] = {
+                "fields_match" : True
+            }
         else:
-            query_result = server_pool_helper.fetch_all_nodes()
-    except Exception as e:
-        result["result"] = False
-        result["reason"] = f"Cannot fetch all docs from server-pool : {e}"
-        logger.error(result["reason"])
-        return result
+            node_doc["tags"]["field_consistency"] = {
+                "fields_match" : False
+            }
+            if len(fields_absent) > 0:
+                node_doc["tags"]["field_consistency"]["fields_absent"] = fields_absent
+            if len(fields_extra) > 0:
+                node_doc["tags"]["field_consistency"]["fields_extra"] = fields_extra
 
-    docs = []
-    for row in query_result:
-        row["_default"]["doc_key"] = row["id"]
-        docs.append(row["_default"])
-
-    result["result"] = True
-    result["docs"] = docs
-    return result
-
-def monitor_health_node(doc, tasks):
-    result  = {}
-    for task in tasks:
-        logger.info(f'{task} for {doc["ipaddr"]}')
-        result[task] = tasks[task](doc)
-    return result
-
-def monitor_health_nodes_parallel(docs, tasks, max_workers=None):
-    if not max_workers:
-        num_cores = os.cpu_count()
-        max_workers = num_cores if num_cores is not None else 10
-
-    final_result = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(monitor_health_node, doc, tasks): doc for doc in docs}
-        for future in concurrent.futures.as_completed(futures):
-            doc = futures[future]
-            result = future.result()
-            final_result[doc["ipaddr"]] = result
-            logger.critical(f"Deleting helper for remote {doc['ipaddr']}")
-            RemoteConnectionObjectFactory.delete_helper(ipaddr=doc["ipaddr"])
-
-    return final_result
-
-def fetch_and_monitor_health(tasks, poolId):
-    
-    result_tasks = fetch_tasks(tasks)
-    if not result_tasks["result"]:
-        return result_tasks
-
-    result_docs = fetch_docs(poolId)
-    if not result_docs["result"]:
-        return result_docs
-
-    return monitor_health_nodes_parallel(docs=result_docs["docs"],
-                                         tasks=result_tasks["tasks_dic"],
-                                         max_workers=750)
-
-def parse_arguments():
-    parser = argparse.ArgumentParser(description="A tool to monitors nodes")
-    parser.add_argument("--poolId", type=str, help="The poolId")
-    parser.add_argument("--tasks", type=str, help="The tasks")
-    return parser.parse_args()
-
-def main():
-    logging_conf_path = os.path.join(script_dir, "..", "..", "..", "logging.conf")
-    logging.config.fileConfig(logging_conf_path)
-
-    args = parse_arguments()
-    if not args.poolId:
-        args.poolId = []
-    else:
         try:
-            args.poolId = eval(args.poolId)
+            res = server_pool_helper.upsert_node_to_server_pool(node_doc)
+            if not res:
+                exception = f"Cannot upsert node {ipaddr} with field_consistency checks to server pool"
+                self.set_subtask_exception(exception)
+
+            self.logger.info(f"Document for node {ipaddr} with field_consistency checks upserted to server pool successfuly")
+
         except Exception as e:
-            logger.error(f"The format of poolId is wrong : {e}")
-            return
-    if not args.tasks:
-        args.tasks = []
-    else:
+            exception = f"Cannot upsert node {ipaddr} with field_consistency checks to server pool : {e}"
+            self.set_subtask_exception(exception)
+
+
+        task_result.result_json = {}
+        task_result.result_json["field_consistency"] = node_doc["tags"]["field_consistency"]
+
+    def node_stats_match_sub_task(self, task_result, params):
+        if "node" not in params:
+            self.set_subtask_exception(ValueError("Invalid arguments passed"))
+        node_doc = params["node"]
+
+        ipaddr = node_doc["ipaddr"]
+
+        # TODO - Remove post cleaning up of server pool
+        if "tags" not in node_doc and "connection_check" not in node_doc["tags"]:
+            exception = f"OS version check was run before connection checks for {ipaddr}"
+            self.set_subtask_exception(exception)
+        elif not node_doc["tags"]["connection_check"]:
+            exception = f"The node is unreachable, cannot perform os version checks for {ipaddr}"
+            self.set_subtask_exception(exception)
+
+
         try:
-            args.tasks = eval(args.tasks)
+            server_pool_helper = ServerPoolSDKHelper()
+            self.logger.info(f"Connection to Server Pool successful")
         except Exception as e:
-            logger.error(f"The format of tasks is wrong : {e}")
-            return
+            exception = f"Cannot connect to Server Pool using SDK : {e}"
+            self.set_subtask_exception(exception)
 
-    results = fetch_and_monitor_health(poolId=args.poolId,
-                                       tasks=args.tasks)
+        if "tags" not in node_doc:
+            node_doc["tags"] = {}
 
-    current_time = datetime.datetime.now()
-    timestamp_string = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
-    result_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", f"results_{timestamp_string}")
-    if not os.path.exists(result_dir_path):
-        logger.info(f"Creating directory {result_dir_path}")
         try:
-            os.makedirs(result_dir_path)
+            remote_connection_helper = RemoteConnectionObjectFactory.fetch_helper(ipaddr,"root","couchbase")
         except Exception as e:
-            logger.error(f"Error creating directory {result_dir_path} : {e}")
-            return
-    logger.info(f"Successfully created directory {result_dir_path}")
-    local_file_path = os.path.join(result_dir_path, f"result.json")
-    with open(local_file_path, "w") as json_file:
-        json.dump(results, json_file)
+            exception = f"The node {ipaddr} is unreachable, cannot perform os version checks : {e}"
+            self.set_subtask_exception(exception)
 
-if __name__ == "__main__":
-    main()
+        try:
+            mac_address_in_node = remote_connection_helper.find_mac_address()
+        except Exception as e:
+            exception = f"Could not find mac adddress for node {ipaddr} : {e}"
+            self.set_subtask_exception(exception)
+
+        if "mac_address" in node_doc and mac_address_in_node == node_doc["mac_address"]:
+            node_doc["tags"]["mac_address_node_check"] = {
+                "mac_address_node_match" : True
+            }
+        else:
+            node_doc["tags"]["mac_address_node_check"] = {
+                "mac_address_node_match" : False,
+                "mac_address_in_node" : mac_address_in_node
+            }
+
+        try:
+            memory_in_node = remote_connection_helper.find_memory_total()
+        except Exception as e:
+            exception = f"Could not find total memory for node {ipaddr} : {e}"
+            self.set_subtask_exception(exception)
+
+        if "memory" in node_doc and memory_in_node == node_doc["memory"]:
+            node_doc["tags"]["memory_node_check"] = {
+                "memory_node_match" : True
+            }
+        else:
+            node_doc["tags"]["memory_node_check"] = {
+                "memory_node_match" : False,
+                "memory_in_node" : memory_in_node
+            }
+
+        try:
+            os_node = remote_connection_helper.find_os_version()
+        except Exception as e:
+            exception = f"Could not find os version for node {ipaddr} : {e}"
+            self.set_subtask_exception(exception)
+
+        if "os_version" in node_doc and os_node == node_doc["os_version"]:
+            node_doc["tags"]["os_node_check"] = {
+                "os_node_match" : True
+            }
+        else:
+            node_doc["tags"]["os_node_check"] = {
+                "os_node_match" : False,
+                "os_in_node" : os_node
+            }
+
+
+        try:
+            res = server_pool_helper.upsert_node_to_server_pool(node_doc)
+            if not res:
+                exception = f"Cannot upsert node {ipaddr} with node-stats-consistency checks to server pool"
+                self.set_subtask_exception(exception)
+
+            self.logger.info(f"Document for node {ipaddr} with node-stats-consistency checks upserted to server pool successfuly")
+
+        except Exception as e:
+            exception = f"Cannot upsert node {ipaddr} with node-stats-consistency checks to server pool : {e}"
+            self.set_subtask_exception(exception)
+
+        task_result.result_json = {}
+        task_result.result_json["mac_address_node_match"] = node_doc["tags"]["mac_address_node_check"]
+        task_result.result_json["memory_node_match"] = node_doc["tags"]["memory_node_check"]
+        task_result.result_json["os_node_match"] = node_doc["tags"]["os_node_check"]
+
+    def host_pool_check_sub_task(self, task_result, params):
+        if "node" not in params:
+            self.set_subtask_exception(ValueError("Invalid arguments passed"))
+        node_doc = params["node"]
+
+        ipaddr = node_doc["ipaddr"]
+
+        try:
+            host_sdk_helper = HostSDKHelper()
+            self.logger.info(f"Connection to Host Pool successful")
+        except Exception as e:
+            exception = f"Cannot connect to Host Pool using SDK : {e}"
+            self.set_subtask_exception(exception)
+
+        try:
+            server_pool_helper = ServerPoolSDKHelper()
+            self.logger.info(f"Connection to Server Pool successful")
+        except Exception as e:
+            exception = f"Cannot connect to Server Pool using SDK : {e}"
+            self.set_subtask_exception(exception)
+
+        if "tags" not in node_doc:
+            node_doc["tags"] = {}
+
+        try:
+            vms = host_sdk_helper.fetch_vm(ipaddr=ipaddr)
+        except Exception as e:
+            exception = f"Cannot fetch vm {ipaddr} from Host Pool using SDK : {e}"
+            self.set_subtask_exception(exception)
+
+        try:
+            vms = [vm[host_sdk_helper.vm_collection_name] for vm in vms]
+        except Exception as e:
+            exception = f"Unable to parse query result from Host Pool using SDK : {e}"
+            self.set_subtask_exception(exception)
+
+        if len(vms) == 0:
+            node_doc["tags"]["ip_in_host_pool"] = False
+        else:
+            node_doc["tags"]["ip_in_host_pool"] = True
+
+            vm = vms[0]
+            if "origin" in node_doc and vm["host"] == node_doc["origin"]:
+                    node_doc["tags"]["origin_host_pool"] = {
+                        "origin_match" : True
+                    }
+            else:
+                node_doc["tags"]["origin_host_pool"] = {
+                    "origin_match" : False,
+                    "origin_host_pool" : vm["host"]
+                }
+
+            if "vm_name" in node_doc and vm["name_label"] == node_doc["vm_name"]:
+                node_doc["tags"]["vm_name_host_pool"] = {
+                    "vm_name_match" : True
+                }
+            else:
+                node_doc["tags"]["vm_name_host_pool"] = {
+                    "vm_name_match" : False,
+                    "vm_name_host_pool" : vm["name_label"]
+                }
+
+            if "os_version" not in vm:
+                vm["os_version"] = "unknown"
+
+            if "os_version" in node_doc and vm["os_version"] == node_doc["os_version"]:
+                node_doc["tags"]["os_version_host_pool"] = {
+                    "os_version_match" : True
+                }
+            else:
+                node_doc["tags"]["os_version_host_pool"] = {
+                    "os_version_match" : False,
+                    "os_version_host_pool" : vm["os_version"]
+                }
+
+        try:
+            res = server_pool_helper.upsert_node_to_server_pool(node_doc)
+            if not res:
+                exception = f"Cannot upsert node {ipaddr} with host-pool-consistency checks to server pool"
+                self.set_subtask_exception(exception)
+
+            self.logger.info(f"Document for node {ipaddr} with host-pool-consistency checks upserted to server pool successfuly")
+
+        except Exception as e:
+            exception = f"Cannot upsert node {ipaddr} with host-pool-consistency checks to server pool : {e}"
+            self.set_subtask_exception(exception)
+
+        task_result.result_json = {}
+        task_result.result_json["ip_in_host_pool"] = node_doc["tags"]["ip_in_host_pool"]
+        if task_result.result_json["ip_in_host_pool"]:
+            task_result.result_json["origin_host_pool"] = node_doc["tags"]["origin_host_pool"]
+            task_result.result_json["vm_name_host_pool"] = node_doc["tags"]["vm_name_host_pool"]
+            task_result.result_json["os_version_host_pool"] = node_doc["tags"]["os_version_host_pool"]
+
+    def __init__(self, params, max_workers=None):
+        """
+            Initialize a NodeHealthMonitorTask with the given params.
+            Args:
+            params (dict): The dictionary with the following fields
+                Valid keys:
+                    - poolId (list, optional) : List of poolIds for which the task should be run.
+                        If it is not provided, all poolIds are considered
+                    - tasks (list, optional): List of tasks which have to be run
+                        If it is not provided all tasks are considered
+        """
+        task_name = NodeHealthMonitorTask.__name__
+        if max_workers is None:
+            max_workers = 100
+        super().__init__(task_name, max_workers)
+
+        if "poolId" not in params:
+            self.poolId = []
+        elif params["poolId"] is None:
+            self.poolId = []
+        elif not isinstance(params["poolId"], list):
+            exception = ValueError(f"poolId param has to be a list : {params['poolId']}")
+            self.set_exception(exception)
+        else:
+            self.poolId = params["poolId"]
+
+        all_sub_tasks = self._get_sub_task_names()
+        if "tasks" not in params:
+            self.sub_task_names = all_sub_tasks
+        elif params["tasks"] is None:
+            self.sub_task_names = all_sub_tasks
+        elif not isinstance(params["tasks"], list):
+            exception = ValueError(f"tasks param has to be a list : {params['tasks']}")
+            self.set_exception(exception)
+        else:
+            for task in params["tasks"]:
+                if task not in all_sub_tasks:
+                    exception = ValueError(f"Invalid Sub task name : {task}")
+                    self.set_exception(exception)
+            self.sub_task_names = params["tasks"]
+
+    def _get_sub_task_names(self):
+        sub_task_names = [
+            "check_connectivity_sub_task",
+            "check_connectivity2_sub_task",
+            "field_consistency_sub_task",
+            "node_stats_match_sub_task",
+            "host_pool_check_sub_task"
+        ]
+        return sub_task_names
+
+    def execute(self):
+        self.start_task()
+        try:
+            server_pool_helper = ServerPoolSDKHelper()
+            self.logger.info(f"Connection to Server Pool successful")
+        except Exception as e:
+            exception = f"Cannot connect to Server Pool using SDK : {e}"
+            self.set_exception(exception)
+        try:
+            if len(self.poolId) > 0:
+                query_result = server_pool_helper.fetch_nodes_by_poolId(self.poolId)
+            else:
+                query_result = server_pool_helper.fetch_all_nodes()
+        except Exception as e:
+            exception = f"Cannot fetch docs from server-pool : {e}"
+            self.set_exception(exception)
+
+        docs = []
+        for row in query_result:
+            row[server_pool_helper.server_pool_collection]["doc_key"] = row["id"]
+            docs.append(row["_default"])
+
+        for sub_task_name in self.sub_task_names:
+            sub_tasks = []
+            for doc in docs:
+                params = {"node" : doc}
+                sub_task = getattr(self, sub_task_name)
+                subtaskid = self.add_sub_task(sub_task, params)
+                sub_tasks.append([doc["doc_key"], subtaskid])
+            for doc_key, subtask_id in sub_tasks:
+                task_result = self.get_sub_task_result(subtask_id=subtask_id)
+                if doc_key not in self.task_result.subtasks:
+                    self.task_result.subtasks[doc_key] = {}
+                self.task_result.subtasks[doc_key][sub_task_name] = task_result
+
+        self.complete_task(result=True)
+
+    def generate_json_result(self, timeout=3600):
+        TaskResult.generate_json_result(self.task_result)
+        for doc_key in self.task_result.result_json:
+           for sub_task_name in self.task_result.result_json[doc_key]:
+               res = TaskResult.generate_json_result(self.task_result.subtasks[doc_key][sub_task_name])
+               self.task_result.result_json[doc_key][sub_task_name] = res
+        return self.task_result.result_json
