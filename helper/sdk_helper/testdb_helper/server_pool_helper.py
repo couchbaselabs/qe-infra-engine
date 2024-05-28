@@ -72,39 +72,45 @@ class ServerPoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
         self.logger.info(f"Running query {query}")
         return self.server_pool_client.query(query, retries=5)
     
-    def fetch_count_nodes_by_filters(self, filters:dict):
-        where_clause = "WHERE"
-        for count, filter in enumerate(filters):
-            if count > 0:
-                where_clause += f"OR "
-            where_clause += f"(ANY v IN {filter} SATISFIES v IN {filters[filter]} END)"
-            where_clause += f"OR {filter} IN {filters[filter]}"
+    def fetch_count_nodes_by_filters(self, filters:dict = None):
+        where_clause = ""
+        if filters is not None or len(filters) > 0:
+            where_clause = "WHERE"
+            for count, filter in enumerate(filters):
+                if count > 0:
+                    where_clause += f"OR "
+                where_clause += f"(ANY v IN {filter} SATISFIES v IN {filters[filter]} END)"
+                where_clause += f"OR {filter} IN {filters[filter]}"
         query = f"SELECT COUNT(*) AS count FROM `{self.server_pool_bucket_name}`.`{self.server_pool_scope}`.`{self.server_pool_collection}` {where_clause}"
         self.logger.info(f"Running query {query}")
         return self.server_pool_client.query(query, retries=5)
     
-    def fetch_nodes_by_filters(self, filters:dict, fields:list,
-                               page:int, offset:int):
-        where_clause = "WHERE"
-        for count, filter in enumerate(filters):
-            if count > 0:
-                where_clause += f"OR "
-            where_clause += f"(ANY v IN {filter} SATISFIES v IN {filters[filter]} END)"
-            where_clause += f"OR {filter} IN {filters[filter]}"
+    def fetch_nodes_by_filters(self, fields:list, page:int,
+                               offset:int, filters:dict = None):
+        where_clause = ""
+        if filters is not None or len(filters) > 0:
+            where_clause = "WHERE"
+            for count, filter in enumerate(filters):
+                if count > 0:
+                    where_clause += f"OR "
+                where_clause += f"(ANY v IN {filter} SATISFIES v IN {filters[filter]} END)"
+                where_clause += f"OR {filter} IN {filters[filter]}"
         query = f"SELECT {','.join(fields)} FROM `{self.server_pool_bucket_name}`.`{self.server_pool_scope}`.`{self.server_pool_collection}` {where_clause} LIMIT {page} OFFSET {offset};"
         self.logger.info(f"Running query {query}")
         return self.server_pool_client.query(query, retries=5)
     
-    def fetch_aggregate_state(self, filters):
-        where_clause = "WHERE"
-        for count, filter in enumerate(filters):
-            if count > 0:
-                where_clause += f"OR "
-            where_clause += f"(ANY v IN {filter} SATISFIES v IN {filters[filter]} END)"
-            where_clause += f"OR {filter} IN {filters[filter]}"
+    def fetch_aggregate_state(self, filters:dict = None):
+        where_clause = ""
+        if filters is not None or len(filters) > 0:
+            where_clause = "WHERE"
+            for count, filter in enumerate(filters):
+                if count > 0:
+                    where_clause += f"OR "
+                where_clause += f"(ANY v IN {filter} SATISFIES v IN {filters[filter]} END)"
+                where_clause += f"OR {filter} IN {filters[filter]}"
         query = f"SELECT state, COUNT(*) as count FROM `{self.server_pool_bucket_name}`.`{self.server_pool_scope}`.`{self.server_pool_collection}` {where_clause} GROUP BY state;"
         self.logger.info(f"Running query {query}")
         return self.server_pool_client.query(query, retries=5)
     
-    def fetch_aggregate_tags(self, filters):
+    def fetch_aggregate_tags(self, filters:dict = None):
         raise NotImplementedError("Not Implemented")
