@@ -74,7 +74,7 @@ class ServerPoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
     
     def fetch_count_nodes_by_filters(self, filters:dict = None):
         where_clause = ""
-        if filters is not None or len(filters) > 0:
+        if filters is not None and len(filters) > 0:
             where_clause = "WHERE"
             for count, filter in enumerate(filters):
                 if count > 0:
@@ -88,7 +88,7 @@ class ServerPoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
     def fetch_nodes_by_filters(self, fields:list, page:int,
                                offset:int, filters:dict = None):
         where_clause = ""
-        if filters is not None or len(filters) > 0:
+        if filters is not None and len(filters) > 0:
             where_clause = "WHERE"
             for count, filter in enumerate(filters):
                 if count > 0:
@@ -101,7 +101,7 @@ class ServerPoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
     
     def fetch_aggregate_state(self, filters:dict = None):
         where_clause = ""
-        if filters is not None or len(filters) > 0:
+        if filters is not None and len(filters) > 0:
             where_clause = "WHERE"
             for count, filter in enumerate(filters):
                 if count > 0:
@@ -114,7 +114,7 @@ class ServerPoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
     
     def fetch_aggregate_tags(self, filters:dict = None):
         where_clause = ""
-        if filters is not None or len(filters) > 0:
+        if filters is not None and len(filters) > 0:
             where_clause = "WHERE"
             for count, filter in enumerate(filters):
                 if count > 0:
