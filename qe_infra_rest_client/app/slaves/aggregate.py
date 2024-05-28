@@ -53,10 +53,10 @@ class AggregateAPI(Resource):
                     field_elements[row['state']] = row['count']
                 return field_elements
             else:
-                query_result = server_pool_helper.fetch_aggregate_tags(filters=filters)
+                query_result = server_pool_helper.fetch_aggregate_state(filters=filters)
                 field_elements = {}
                 for row in query_result:
-                    field_elements = row
+                    field_elements[row['tags']] = row['count']
                 return field_elements
         except Exception as e:
             message = f"Cannot query to server-pool : {e}"
