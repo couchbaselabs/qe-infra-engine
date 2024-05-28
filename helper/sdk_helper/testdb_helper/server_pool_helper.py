@@ -113,4 +113,21 @@ class ServerPoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
         return self.server_pool_client.query(query, retries=5)
     
     def fetch_aggregate_tags(self, filters:dict = None):
-        raise NotImplementedError("Not Implemented")
+        where_clause = ""
+        if filters is not None or len(filters) > 0:
+            where_clause = "WHERE"
+            for count, filter in enumerate(filters):
+                if count > 0:
+                    where_clause += f"OR "
+                where_clause += f"(ANY v IN {filter} SATISFIES v IN {filters[filter]} END)"
+                where_clause += f"OR {filter} IN {filters[filter]}"
+
+        query = f"""SELECT RAW OBJECT obj.name:obj.val FOR obj IN (SELECT final.*
+        FROM (select tag_value.name, count(*) as val
+        FROM (select object_pairs(`tags`) AS tag FROM `{self.server_pool_bucket_name}`.`{self.server_pool_scope}`.`{self.server_pool_collection}` {where_clause}) AS pair
+        unnest pair.tag as tag_value 
+        group by tag_value.name) as final)
+        END as result"""
+
+        self.logger.info(f"Running query {query}")
+        return self.server_pool_client.query(query, retries=5)
