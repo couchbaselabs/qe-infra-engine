@@ -41,3 +41,22 @@ VM_TEMPLATE = {
     "host" : "",
     "tags" : {}
 }
+
+SLAVE_TEMPLATE = {
+    "ipaddr" : "",
+    "name" : "",
+    "description" : "",
+    "labels" : [],
+    "os" : "",
+    "os_version" : "",
+    "state" : "",
+    "memory" : "",
+    "tags" : {},
+    "mac_address": "",
+    "origin": "",
+    "name_label" : "",
+    "jenkins_host" : "",
+    "num_executors" : 0,
+    "remote_fs": "",
+    "usage_mode" : ""
+}
