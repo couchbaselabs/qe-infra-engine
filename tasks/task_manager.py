@@ -13,6 +13,9 @@ class TaskManager:
         future_instance = self.task_executor_pool.submit(task.execute)
         self.running_tasks[task.id] = [future_instance, task]
 
+    def get_current_task_status(self, task_id: str):
+        return self.running_tasks[task_id][1].task_result.state
+
     def get_task_result(self, task_id: str = None, task: Task = None):
         if task_id is None and task is None:
             raise ValueError("Both task and task_id are None, cannot fetch result")
@@ -31,10 +34,11 @@ class TaskManager:
             self.logger.warning(f"{task_id} has not run properly and has ended abruptly : {e}")
             self.subtasks[task_id][1].set_exception(e)
 
+        task = self.running_tasks[task_id][1]
         task_result = self.running_tasks[task_id][1].task_result
         TaskResult.generate_json_result(task_result)
         self.running_tasks.pop(task_id, None)
-        return task_result
+        return task, task_result 
 
         
 

@@ -5,7 +5,7 @@ from tasks.task_result import TaskResult
 class Task:
     def __init__(self, task_name, max_workers):
         self.task_name = task_name
-        self.id = uuid.uuid4()
+        self.id = str(uuid.uuid4())
         self.logger = logging.getLogger("tasks")
         self.task_result = TaskResult()
         self.subtasks = {}
