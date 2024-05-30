@@ -60,6 +60,76 @@ class SlavePoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
                                bucket_name=self.slave_pool_bucket_name,
                                scope=self.slave_doc_scope_name,
                                collection=self.slave_doc_collection_name)
+    
+    def fetch_aggregate_state(self, filters:dict = None):
+        where_clause = ""
+        if filters is not None and len(filters) > 0:
+            where_clause = "WHERE"
+            for count, filter in enumerate(filters):
+                if count > 0:
+                    where_clause += f"OR "
+                where_clause += f"(ANY v IN {filter} SATISFIES v IN {filters[filter]} END)"
+                where_clause += f"OR {filter} IN {filters[filter]}"
+        query = f"SELECT state, COUNT(*) as count FROM `{self.slave_pool_bucket_name}`.`{self.slave_doc_scope_name}`.`{self.slave_doc_collection_name}` {where_clause} GROUP BY state;"
+        self.logger.info(f"Running query {query}")
+        return self.slave_doc_connection.query(query, retries=5)
+    
+    def fetch_aggregate_tags(self, filters:dict = None):
+        where_clause = ""
+        if filters is not None and len(filters) > 0:
+            where_clause = "WHERE"
+            for count, filter in enumerate(filters):
+                if count > 0:
+                    where_clause += f"OR "
+                where_clause += f"(ANY v IN {filter} SATISFIES v IN {filters[filter]} END)"
+                where_clause += f"OR {filter} IN {filters[filter]}"
+
+        query = f"""SELECT RAW OBJECT obj.name:obj.val FOR obj IN (SELECT final.*
+        FROM (select tag_value.name, count(*) as val
+        FROM (select object_pairs(`tags`) AS tag FROM `{self.slave_pool_bucket_name}`.`{self.slave_doc_scope_name}`.`{self.slave_doc_collection_name}` {where_clause}) AS pair
+        unnest pair.tag as tag_value 
+        group by tag_value.name) as final)
+        END as result"""
+
+        self.logger.info(f"Running query {query}")
+        return self.slave_doc_connection.query(query, retries=5)
+    
+    def fetch_count_slaves_by_filters(self, filters:dict = None):
+        where_clause = ""
+        if filters is not None and len(filters) > 0:
+            where_clause = "WHERE"
+            for count, filter in enumerate(filters):
+                if count > 0:
+                    where_clause += f"OR "
+                where_clause += f"(ANY v IN {filter} SATISFIES v IN {filters[filter]} END)"
+                where_clause += f"OR {filter} IN {filters[filter]}"
+        query = f"SELECT COUNT(*) AS count FROM `{self.slave_pool_bucket_name}`.`{self.slave_doc_scope_name}`.`{self.slave_doc_collection_name}` {where_clause}"
+        self.logger.info(f"Running query {query}")
+        return self.slave_doc_connection.query(query, retries=5)
+    
+    def fetch_slaves_by_filters(self, fields:list, page:int,
+                               offset:int, filters:dict = None):
+        where_clause = ""
+        if filters is not None and len(filters) > 0:
+            where_clause = "WHERE"
+            for count, filter in enumerate(filters):
+                if count > 0:
+                    where_clause += f"OR "
+                where_clause += f"(ANY v IN {filter} SATISFIES v IN {filters[filter]} END)"
+                where_clause += f"OR {filter} IN {filters[filter]}"
+        query = f"SELECT {','.join(fields)} FROM `{self.slave_pool_bucket_name}`.`{self.slave_doc_scope_name}`.`{self.slave_doc_collection_name}` {where_clause} LIMIT {page} OFFSET {offset};"
+        self.logger.info(f"Running query {query}")
+        return self.slave_doc_connection.query(query, retries=5)
+    
+    def fetch_distinct_values_array(self, field):
+        query = f"SELECT DISTINCT unnested_element FROM `{self.slave_pool_bucket_name}`.`{self.slave_doc_scope_name}`.`{self.slave_doc_collection_name}` UNNEST {field} AS unnested_element;"
+        self.logger.info(f"Running query {query}")
+        return self.slave_doc_connection.query(query, retries=5)
+    
+    def fetch_distinct_values(self, field):
+        query = f"SELECT DISTINCT {field} FROM `{self.slave_pool_bucket_name}`.`{self.slave_doc_scope_name}`.`{self.slave_doc_collection_name}`"
+        self.logger.info(f"Running query {query}")
+        return self.slave_doc_connection.query(query, retries=5)
 
 
 
