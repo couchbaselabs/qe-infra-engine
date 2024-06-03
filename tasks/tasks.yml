@@ -86,3 +86,22 @@ host_health_monitor_task :
             - --update_docs
           help: "Updates all docs of the given group belonging to QE-host-pool"
           type: bool
+add_slaves_task:
+  path : tasks/slave_maintenance/slave_operations/add_slave.py
+  class : AddSlavesTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of slaves to be added to the slave-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of slaves"
+    add_to_jenkins:
+      flags:
+        - --add_to_jenkins
+      type: bool
+      help: Pass true if the slave needs to be added to jenkins. Pass false if the slave need not be added to jenkins, but just the slave-pool
+    initialize_slave:
+      flags:
+        - --initialize_slave
+      type: bool
+      help: Pass true if the slave needs initialized. Pass false if the slave need not be initialized, but just the slave-pool/jenkins
