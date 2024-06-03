@@ -38,7 +38,7 @@ class ReconnectSlavesTask(Task):
             exception = f"Cannot fetch helper for slave {ipaddr}:{slave_name} : {e}"
             self.set_subtask_exception(exception)
 
-        # Step 1 - Reconnect from jenkins
+        # Step 1 - Reconnect to jenkins
         try:
             status_jenkins, res_jenkins = jenkins_helper.reconnect_slave(slave_name)
             self.logger.info(f"Slave with ipaddr {ipaddr} and name {slave_name} successfully reconnected to jenkins")
