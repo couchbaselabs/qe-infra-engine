@@ -10,9 +10,23 @@ from constants.doc_templates import VM_TEMPLATE
 # TODO tasks
 '''
 1. Check the number of VMs present in server-pool per host
+2. Check if host ip itself is in server-pool 
 '''
 
 class HostHealthMonitorTask(Task):
+
+    def _initialize_tags(self, doc: dict):
+        if "tags" not in doc:
+            doc["tags"] = {}
+        if "list" not in doc["tags"]:
+            doc["tags"]["list"] = set()
+        if "details" not in doc["tags"]:
+            doc["tags"]["details"] = {}
+
+    def _flush_tags_list(self, doc: dict, tags: list):
+        for tag in tags:
+            if tag in doc["tags"]["list"]:
+                doc["tags"]["list"].remove(tag)
 
     def check_for_vms_state(self, task_result: TaskResult, params: dict) -> None:
         if "host_doc" not in params:
@@ -31,14 +45,13 @@ class HostHealthMonitorTask(Task):
             exception = f"Cannot connect to Host Pool using SDK : {e}"
             self.set_subtask_exception(exception)
 
-        if "tags" not in host_doc:
-            host_doc["tags"] = {}
+        self._initialize_tags(host_doc)
 
-        host_doc["tags"]["vm_states"] = {}
+        host_doc["tags"]["details"]["vm_states"] = {}
         for vm in vm_docs:
-            if vm["state"] not in host_doc["tags"]["vm_states"]:
-                host_doc["tags"]["vm_states"][vm["state"]] = 0
-            host_doc["tags"]["vm_states"][vm["state"]] += 1
+            if vm["state"] not in host_doc["tags"]["details"]["vm_states"]:
+                host_doc["tags"]["details"]["vm_states"][vm["state"]] = 0
+            host_doc["tags"]["details"]["vm_states"][vm["state"]] += 1
 
         try:
             res = host_pool_helper.update_host(host_doc)
@@ -50,7 +63,7 @@ class HostHealthMonitorTask(Task):
             self.set_subtask_exception(exception)
 
         task_result.result_json = {}
-        task_result.result_json["vm_states"] = host_doc["tags"]["vm_states"]
+        task_result.result_json["vm_states"] = host_doc["tags"]["details"]["vm_states"]
 
     def check_for_cpu_usage(self, task_result: TaskResult, params: dict) -> None:
         if "host_doc" not in params:
@@ -74,13 +87,23 @@ class HostHealthMonitorTask(Task):
             if vm["state"] == "Running":
                 cpu += int(vm["cpu"])
 
-        if "tags" not in host_doc:
-            host_doc["tags"] = {}
+        self._initialize_tags(host_doc)
+        
+        tags = ["cpu_not_available", "cpu_overprovisioned", "cpu_underprovisioned", "cpu_not_provisioned"]
+        self._flush_tags_list(host_doc, tags)
 
         if int(host_doc["cpu"]) != 0:
-            host_doc["tags"]["allocated_cpu_utilization"] = cpu / int(host_doc["cpu"]) * 100
+            host_doc["tags"]["details"]["cpu_provision_percent"] = cpu / int(host_doc["cpu"]) * 100.0
         else:
-            host_doc["tags"]["allocated_cpu_utilization"] = 0
+            host_doc["tags"]["details"]["cpu_provision_percent"] = 0
+            host_doc["tags"]["list"].add("cpu_not_available")
+
+        if host_doc["tags"]["details"]["cpu_provision_percent"] > 90:
+            host_doc["tags"]["list"].add("cpu_overprovisioned")
+        elif host_doc["tags"]["details"]["cpu_provision_percent"] < 50:
+            host_doc["tags"]["list"].add("cpu_underprovisioned")
+        elif host_doc["tags"]["details"]["cpu_provision_percent"] == 0:
+            host_doc["tags"]["list"].add("cpu_not_provisioned")
 
         try:
             res = host_pool_helper.update_host(host_doc)
@@ -93,7 +116,7 @@ class HostHealthMonitorTask(Task):
             self.set_subtask_exception(exception)
 
         task_result.result_json = {}
-        task_result.result_json["allocated_cpu_utilization"] = host_doc["tags"]["allocated_cpu_utilization"]
+        task_result.result_json["cpu_provision_percent"] = host_doc["tags"]["details"]["cpu_provision_percent"]
 
     def check_for_mem_usage(self, task_result: TaskResult, params: dict) -> None:
         if "host_doc" not in params:
@@ -117,14 +140,23 @@ class HostHealthMonitorTask(Task):
             if vm["state"] == "Running":
                 memory += int(vm["memory"])
 
-        if "tags" not in host_doc:
-            host_doc["tags"] = {}
+        self._initialize_tags(host_doc)
+
+        tags = ["memory_not_available", "memory_overprovisioned", "memory_underprovisioned", "memory_not_provisioned"]
+        self._flush_tags_list(host_doc, tags)
 
         if int(host_doc["memory"]) == 0:
-            host_doc["tags"]["allocated_memory_utilization"] = 0
+            host_doc["tags"]["details"]["memory_provision_percent"] = 0
+            host_doc["tags"]["list"].add("memory_not_available")
         else:
-            host_doc["tags"]["allocated_memory_utilization"] = memory / int(host_doc["memory"]) * 100
+            host_doc["tags"]["details"]["memory_provision_percent"] = memory / int(host_doc["memory"]) * 100
 
+        if host_doc["tags"]["details"]["memory_provision_percent"] > 90:
+            host_doc["tags"]["list"].add("memory_overprovisioned")
+        elif host_doc["tags"]["details"]["memory_provision_percent"] < 50:
+            host_doc["tags"]["list"].add("memory_underprovisioned")
+        elif host_doc["tags"]["details"]["memory_provision_percent"] == 0:
+            host_doc["tags"]["list"].add("memory_not_provisioned")
 
         try:
             res = host_pool_helper.update_host(host_doc)
@@ -137,7 +169,7 @@ class HostHealthMonitorTask(Task):
             self.set_subtask_exception(exception)
 
         task_result.result_json = {}
-        task_result.result_json["allocated_memory_utilization"] = host_doc["tags"]["allocated_memory_utilization"]
+        task_result.result_json["memory_provision_percent"] = host_doc["tags"]["details"]["memory_provision_percent"]
 
     def check_vm_network(self, task_result: TaskResult, params: dict) -> None:
         if "vm_doc" not in params:
@@ -152,25 +184,31 @@ class HostHealthMonitorTask(Task):
             exception = f"Cannot connect to Host Pool using SDK : {e}"
             self.set_subtask_exception(exception)
 
-        if "tags" not in vm_doc:
-            vm_doc["tags"] = {}
+        self._initialize_tags(vm_doc)
+        tags = ["addresses_unavailable", "addresses_ipv4_unavailable", "mainIpAddress_unavailable", "mainIpAddress_ipv4_unavailable"]
+        self._flush_tags_list(vm_doc, tags)
 
         if "addresses" not in vm_doc:
-            vm_doc["tags"]["addresses_available"] = False
+            vm_doc["tags"]["details"]["addresses_available"] = False
+            vm_doc["tags"]["list"].add("addresses_unavailable")
         else:
             present = False
             for key in vm_doc["addresses"]:
                 if "ipv4" in key:
                     present = True
-            vm_doc["tags"]["addresses_available"] = present
+            vm_doc["tags"]["details"]["addresses_available"] = present
+            if not present:
+                vm_doc["tags"]["list"].add("addresses_ipv4_unavailable")
 
         if "mainIpAddress" not in vm_doc:
-            vm_doc["tags"]["mainIpAddress_available"] = False
+            vm_doc["tags"]["details"]["mainIpAddress_available"] = False
+            vm_doc["tags"]["list"].add("mainIpAddress_unavailable")
         else:
             if len(vm_doc["mainIpAddress"].split(".")) != 4:
-                vm_doc["tags"]["mainIpAddress_available"] = False
+                vm_doc["tags"]["details"]["mainIpAddress_available"] = False
+                vm_doc["tags"]["list"].add("mainIpAddress_ipv4_unavailable")
             else:
-                vm_doc["tags"]["mainIpAddress_available"] = True
+                vm_doc["tags"]["details"]["mainIpAddress_available"] = True
 
         try:
             res = host_sdk_helper.update_vm(vm_doc)
@@ -183,8 +221,8 @@ class HostHealthMonitorTask(Task):
             self.set_subtask_exception(exception)
 
         task_result.result_json = {}
-        task_result.result_json["addresses_available"] = vm_doc["tags"]["addresses_available"]
-        task_result.result_json["mainIpAddress_available"] = vm_doc["tags"]["mainIpAddress_available"]
+        task_result.result_json["addresses_available"] = vm_doc["tags"]["details"]["addresses_available"]
+        task_result.result_json["mainIpAddress_available"] = vm_doc["tags"]["details"]["mainIpAddress_available"]
 
     def check_vm_os_version(self, task_result: TaskResult, params: dict) -> None:
         if "vm_doc" not in params:
@@ -199,15 +237,19 @@ class HostHealthMonitorTask(Task):
             exception = f"Cannot connect to Host Pool using SDK : {e}"
             self.set_subtask_exception(exception)
 
-        if "tags" not in vm_doc:
-            vm_doc["tags"] = {}
+        self._initialize_tags(vm_doc)
+        tags = ["os_version_unavailable"]
+        self._flush_tags_list(vm_doc, tags)
 
         if "os_version" not in vm_doc:
-            vm_doc["tags"]["os_version_available"] = False
+            vm_doc["tags"]["details"]["os_version_available"] = False
         elif vm_doc["os_version"] == "":
-            vm_doc["tags"]["os_version_available"] = False
+            vm_doc["tags"]["details"]["os_version_available"] = False
         else:
-            vm_doc["tags"]["os_version_available"] = True
+            vm_doc["tags"]["details"]["os_version_available"] = True
+        
+        if not vm_doc["tags"]["details"]["os_version_available"]:
+            vm_doc["tags"]["list"].add("os_version_unavailable")
 
         try:
             res = host_sdk_helper.update_vm(vm_doc)
@@ -219,7 +261,7 @@ class HostHealthMonitorTask(Task):
             exception = f"Cannot upsert vm {vm_doc['name_label']} with os-version-consistency checks to host pool : {e}"
 
         task_result.result_json = {}
-        task_result.result_json["os_version_available"] = vm_doc["tags"]["os_version_available"]
+        task_result.result_json["os_version_available"] = vm_doc["tags"]["details"]["os_version_available"]
 
     def check_vms_in_server_pool(self, task_result: TaskResult, params: dict) -> None:
         if "vm_doc" not in params:
@@ -255,10 +297,13 @@ class HostHealthMonitorTask(Task):
         else:
             ip_present = True
 
-        if "tags" not in vm_doc:
-            vm_doc["tags"] = {}
+        self._initialize_tags(vm_doc)
+        tags = ["vm_not_in_server_pool"]
+        self._flush_tags_list(vm_doc, tags)
 
-        vm_doc["tags"]["vm_in_server_pool"] = ip_present
+        vm_doc["tags"]["details"]["vm_in_server_pool"] = ip_present
+        if not ip_present:
+            vm_doc["tags"]["list"].add("vm_not_in_server_pool")
 
         try:
             res = host_sdk_helper.update_vm(vm_doc)
@@ -271,7 +316,7 @@ class HostHealthMonitorTask(Task):
             self.set_subtask_exception(exception)
 
         task_result.result_json = {}
-        task_result.result_json ["vm_in_server_pool"] = vm_doc["tags"]["vm_in_server_pool"]
+        task_result.result_json ["vm_in_server_pool"] = vm_doc["tags"]["details"]["vm_in_server_pool"]
 
     def check_vm_field_consistency(self, task_result: TaskResult, params: dict) -> None:
         if "vm_doc" not in params:
@@ -298,21 +343,23 @@ class HostHealthMonitorTask(Task):
             if field not in fields_required:
                 fields_extra.append(field)
 
-        if "tags" not in vm_doc:
-            vm_doc["tags"] = {}
+        self._initialize_tags(vm_doc)
+        tags = ["no_fields_consistency"]
+        self._flush_tags_list(vm_doc, tags)
 
         if len(fields_absent) == 0 and len(fields_extra) == 0:
-            vm_doc["tags"]["field_consistency"] = {
+            vm_doc["tags"]["details"]["field_consistency"] = {
                 "fields_match" : True
             }
         else:
-            vm_doc["tags"]["field_consistency"] = {
+            vm_doc["tags"]["list"].add("no_fields_consistency")
+            vm_doc["tags"]["details"]["field_consistency"] = {
                 "fields_match" : False
             }
             if len(fields_absent) > 0:
-                vm_doc["tags"]["field_consistency"]["fields_absent"] = fields_absent
+                vm_doc["tags"]["details"]["field_consistency"]["fields_absent"] = fields_absent
             if len(fields_extra) > 0:
-                vm_doc["tags"]["field_consistency"]["fields_extra"] = fields_extra
+                vm_doc["tags"]["details"]["field_consistency"]["fields_extra"] = fields_extra
 
         try:
             res = host_sdk_helper.update_vm(vm_doc)
@@ -324,7 +371,7 @@ class HostHealthMonitorTask(Task):
             exception = f"Cannot upsert vm {vm_doc['name_label']} with field-consistency checks to host pool : {e}"
 
         task_result.result_json = {}
-        task_result.result_json["field_consistency"] = vm_doc["tags"]["field_consistency"]
+        task_result.result_json["field_consistency"] = vm_doc["tags"]["details"]["field_consistency"]
 
     def _get_vm_sub_task_names(self):
         all_tasks_dic = {
