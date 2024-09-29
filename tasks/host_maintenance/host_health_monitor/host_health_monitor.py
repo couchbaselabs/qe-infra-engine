@@ -19,14 +19,14 @@ class HostHealthMonitorTask(Task):
         if "tags" not in doc:
             doc["tags"] = {}
         if "list" not in doc["tags"]:
-            doc["tags"]["list"] = set()
+            doc["tags"]["list"] = []
         if "details" not in doc["tags"]:
             doc["tags"]["details"] = {}
 
     def _flush_tags_list(self, doc: dict, tags: list):
         for tag in tags:
             if tag in doc["tags"]["list"]:
-                doc["tags"]["list"].remove(tag)
+                doc["tags"]["list"] = list(filter(lambda x: x !=tag, doc["tags"]["list"]))
 
     def check_for_vms_state(self, task_result: TaskResult, params: dict) -> None:
         if "host_doc" not in params:
@@ -96,14 +96,14 @@ class HostHealthMonitorTask(Task):
             host_doc["tags"]["details"]["cpu_provision_percent"] = cpu / int(host_doc["cpu"]) * 100.0
         else:
             host_doc["tags"]["details"]["cpu_provision_percent"] = 0
-            host_doc["tags"]["list"].add("cpu_not_available")
+            host_doc["tags"]["list"].append("cpu_not_available")
 
         if host_doc["tags"]["details"]["cpu_provision_percent"] > 90:
-            host_doc["tags"]["list"].add("cpu_overprovisioned")
+            host_doc["tags"]["list"].append("cpu_overprovisioned")
         elif host_doc["tags"]["details"]["cpu_provision_percent"] < 50:
-            host_doc["tags"]["list"].add("cpu_underprovisioned")
+            host_doc["tags"]["list"].append("cpu_underprovisioned")
         elif host_doc["tags"]["details"]["cpu_provision_percent"] == 0:
-            host_doc["tags"]["list"].add("cpu_not_provisioned")
+            host_doc["tags"]["list"].append("cpu_not_provisioned")
 
         try:
             res = host_pool_helper.update_host(host_doc)
@@ -147,16 +147,16 @@ class HostHealthMonitorTask(Task):
 
         if int(host_doc["memory"]) == 0:
             host_doc["tags"]["details"]["memory_provision_percent"] = 0
-            host_doc["tags"]["list"].add("memory_not_available")
+            host_doc["tags"]["list"].append("memory_not_available")
         else:
             host_doc["tags"]["details"]["memory_provision_percent"] = memory / int(host_doc["memory"]) * 100
 
         if host_doc["tags"]["details"]["memory_provision_percent"] > 90:
-            host_doc["tags"]["list"].add("memory_overprovisioned")
+            host_doc["tags"]["list"].append("memory_overprovisioned")
         elif host_doc["tags"]["details"]["memory_provision_percent"] < 50:
-            host_doc["tags"]["list"].add("memory_underprovisioned")
+            host_doc["tags"]["list"].append("memory_underprovisioned")
         elif host_doc["tags"]["details"]["memory_provision_percent"] == 0:
-            host_doc["tags"]["list"].add("memory_not_provisioned")
+            host_doc["tags"]["list"].append("memory_not_provisioned")
 
         try:
             res = host_pool_helper.update_host(host_doc)
@@ -190,7 +190,7 @@ class HostHealthMonitorTask(Task):
 
         if "addresses" not in vm_doc:
             vm_doc["tags"]["details"]["addresses_available"] = False
-            vm_doc["tags"]["list"].add("addresses_unavailable")
+            vm_doc["tags"]["list"].append("addresses_unavailable")
         else:
             present = False
             for key in vm_doc["addresses"]:
@@ -198,15 +198,15 @@ class HostHealthMonitorTask(Task):
                     present = True
             vm_doc["tags"]["details"]["addresses_available"] = present
             if not present:
-                vm_doc["tags"]["list"].add("addresses_ipv4_unavailable")
+                vm_doc["tags"]["list"].append("addresses_ipv4_unavailable")
 
         if "mainIpAddress" not in vm_doc:
             vm_doc["tags"]["details"]["mainIpAddress_available"] = False
-            vm_doc["tags"]["list"].add("mainIpAddress_unavailable")
+            vm_doc["tags"]["list"].append("mainIpAddress_unavailable")
         else:
             if len(vm_doc["mainIpAddress"].split(".")) != 4:
                 vm_doc["tags"]["details"]["mainIpAddress_available"] = False
-                vm_doc["tags"]["list"].add("mainIpAddress_ipv4_unavailable")
+                vm_doc["tags"]["list"].append("mainIpAddress_ipv4_unavailable")
             else:
                 vm_doc["tags"]["details"]["mainIpAddress_available"] = True
 
@@ -249,7 +249,7 @@ class HostHealthMonitorTask(Task):
             vm_doc["tags"]["details"]["os_version_available"] = True
         
         if not vm_doc["tags"]["details"]["os_version_available"]:
-            vm_doc["tags"]["list"].add("os_version_unavailable")
+            vm_doc["tags"]["list"].append("os_version_unavailable")
 
         try:
             res = host_sdk_helper.update_vm(vm_doc)
@@ -303,7 +303,7 @@ class HostHealthMonitorTask(Task):
 
         vm_doc["tags"]["details"]["vm_in_server_pool"] = ip_present
         if not ip_present:
-            vm_doc["tags"]["list"].add("vm_not_in_server_pool")
+            vm_doc["tags"]["list"].append("vm_not_in_server_pool")
 
         try:
             res = host_sdk_helper.update_vm(vm_doc)
@@ -352,7 +352,7 @@ class HostHealthMonitorTask(Task):
                 "fields_match" : True
             }
         else:
-            vm_doc["tags"]["list"].add("no_fields_consistency")
+            vm_doc["tags"]["list"].append("no_fields_consistency")
             vm_doc["tags"]["details"]["field_consistency"] = {
                 "fields_match" : False
             }

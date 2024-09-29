@@ -22,14 +22,14 @@ class NodeHealthMonitorTask(Task):
         if "tags" not in doc:
             doc["tags"] = {}
         if "list" not in doc["tags"]:
-            doc["tags"]["list"] = set()
+            doc["tags"]["list"] = []
         if "details" not in doc["tags"]:
             doc["tags"]["details"] = {}
 
     def _flush_tags_list(self, doc: dict, tags: list):
         for tag in tags:
             if tag in doc["tags"]["list"]:
-                doc["tags"]["list"].remove(tag)
+                doc["tags"]["list"] = list(filter(lambda x: x !=tag, doc["tags"]["list"]))
 
     def check_connectivity_sub_task(self, task_result, params):
         if "node" not in params:
@@ -55,7 +55,7 @@ class NodeHealthMonitorTask(Task):
             #         else node_doc["state"]
         except Exception as e:
             node_doc["tags"]["details"]["connection_check"] = False
-            node_doc["tags"]["list"].add("unreachable")
+            node_doc["tags"]["list"].append("unreachable")
             # node_doc["state"] = "unreachable"
 
         try:
@@ -161,7 +161,7 @@ class NodeHealthMonitorTask(Task):
 
         node_doc["tags"]["details"]["connection_check"] = connection
         if not connection:
-            node_doc["tags"]["list"].add("unreachable")
+            node_doc["tags"]["list"].append("unreachable")
 
         if len(connection_errors) > 1:
             node_doc["tags"]["details"]["connection_check_err"] = ' '.join(str(item) for item in connection_errors)
@@ -220,7 +220,7 @@ class NodeHealthMonitorTask(Task):
                 "fields_match" : True
             }
         else:
-            node_doc["tags"]["list"].add("no_fields_consistency")
+            node_doc["tags"]["list"].append("no_fields_consistency")
             node_doc["tags"]["details"]["field_consistency"] = {
                 "fields_match" : False
             }
@@ -292,7 +292,7 @@ class NodeHealthMonitorTask(Task):
                 "mac_address_node_match" : False,
                 "mac_address_in_node" : mac_address_in_node
             }
-            node_doc["tags"]["list"].add("mac_address_node_mismatch")
+            node_doc["tags"]["list"].append("mac_address_node_mismatch")
 
         try:
             memory_in_node = remote_connection_helper.find_memory_total()
@@ -309,7 +309,7 @@ class NodeHealthMonitorTask(Task):
                 "memory_node_match" : False,
                 "memory_in_node" : memory_in_node
             }
-            node_doc["tags"]["list"].add("memory_node_mismatch")
+            node_doc["tags"]["list"].append("memory_node_mismatch")
 
         try:
             os_node = remote_connection_helper.find_os_version()
@@ -326,7 +326,7 @@ class NodeHealthMonitorTask(Task):
                 "os_node_match" : False,
                 "os_in_node" : os_node
             }
-            node_doc["tags"]["list"].add("os_node_mismatch")
+            node_doc["tags"]["list"].append("os_node_mismatch")
 
         try:
             res = server_pool_helper.upsert_node_to_server_pool(node_doc)
@@ -384,7 +384,7 @@ class NodeHealthMonitorTask(Task):
 
         if len(vms) == 0:
             node_doc["tags"]["details"]["ip_in_host_pool"] = False
-            node_doc["tags"]["list"].add("ip_not_in_host_pool")
+            node_doc["tags"]["list"].append("ip_not_in_host_pool")
         else:
             node_doc["tags"]["details"]["ip_in_host_pool"] = True
             vm = vms[0]
@@ -393,7 +393,7 @@ class NodeHealthMonitorTask(Task):
                         "origin_match" : True
                     }
             else:
-                node_doc["tags"]["list"].add("origin_host_pool_mismatch")
+                node_doc["tags"]["list"].append("origin_host_pool_mismatch")
                 node_doc["tags"]["details"]["origin_host_pool"] = {
                     "origin_match" : False,
                     "origin_host_pool" : vm["host"]
@@ -404,7 +404,7 @@ class NodeHealthMonitorTask(Task):
                     "vm_name_match" : True
                 }
             else:
-                node_doc["tags"]["list"].add("vm_name_host_pool_mismatch")
+                node_doc["tags"]["list"].append("vm_name_host_pool_mismatch")
                 node_doc["tags"]["details"]["vm_name_host_pool"] = {
                     "vm_name_match" : False,
                     "vm_name_host_pool" : vm["name_label"]
@@ -418,7 +418,7 @@ class NodeHealthMonitorTask(Task):
                     "os_version_match" : True
                 }
             else:
-                node_doc["tags"]["list"].add("os_host_pool_mismatch")
+                node_doc["tags"]["list"].append("os_host_pool_mismatch")
                 node_doc["tags"]["details"]["os_version_host_pool"] = {
                     "os_version_match" : False,
                     "os_version_host_pool" : vm["os_version"]

@@ -80,7 +80,7 @@ class AddNodesTask(Task):
         doc["prevUser"] = ""
         doc["username"] = ""
         doc["state"] = "available"
-        doc["tags"] = {"list" : set(), "details" : {}}
+        doc["tags"] = {"list" : [], "details" : {}}
 
         try:
             res = server_pool_helper.upsert_node_to_server_pool(doc)

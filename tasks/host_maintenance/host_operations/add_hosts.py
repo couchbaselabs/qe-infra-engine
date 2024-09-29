@@ -58,10 +58,10 @@ class AddHostTask(Task):
         host_doc["group"] = group
         host_doc["xen_username"] = xen_username
         host_doc["xen_password"] = xen_password
-        host_doc["tags"] = {"list" : set(), "details" : {}}
+        host_doc["tags"] = {"list" : [], "details" : {}}
         if "rebootRequired" in host_data:
             host_doc["tags"]["details"]["reboot_required"] = host_data["rebootRequired"]
-            host_doc["tags"]["list"].add("reboot_required")
+            host_doc["tags"]["list"].append("reboot_required")
         else:
             host_doc["tags"]["details"]["reboot_required"] = False
 
@@ -137,7 +137,7 @@ class AddHostTask(Task):
                 vm_doc["poolId"] = vm["$poolId"]
             vm_doc["group"] = group
             vm_doc["host"] = host
-            vm_doc["tags"] = {"list" : set(), "details" : {}}
+            vm_doc["tags"] = {"list" : [], "details" : {}}
             task_result.result_json[vm_doc["name_label"]] = {}
             try:
                 res = host_pool_helper.update_vm(doc=vm_doc)
