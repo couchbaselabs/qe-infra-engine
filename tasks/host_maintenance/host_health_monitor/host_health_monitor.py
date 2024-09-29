@@ -426,7 +426,7 @@ class HostHealthMonitorTask(Task):
         """
         task_name = HostHealthMonitorTask.__name__
         if max_workers is None:
-            max_workers = 100
+            max_workers = 2000
         super().__init__(task_name, max_workers)
 
         if "update_docs" not in params:
