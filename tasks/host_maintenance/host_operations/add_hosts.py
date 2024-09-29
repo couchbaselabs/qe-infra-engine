@@ -61,7 +61,8 @@ class AddHostTask(Task):
         host_doc["tags"] = {"list" : [], "details" : {}}
         if "rebootRequired" in host_data:
             host_doc["tags"]["details"]["reboot_required"] = host_data["rebootRequired"]
-            host_doc["tags"]["list"].append("reboot_required")
+            if bool(host_doc["tags"]["details"]["reboot_required"]):
+                host_doc["tags"]["list"].append("reboot_required")
         else:
             host_doc["tags"]["details"]["reboot_required"] = False
 

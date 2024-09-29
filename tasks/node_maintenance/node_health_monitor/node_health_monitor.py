@@ -389,7 +389,7 @@ class NodeHealthMonitorTask(Task):
             node_doc["tags"]["details"]["ip_in_host_pool"] = True
             vm = vms[0]
             if "origin" in node_doc and vm["host"] == node_doc["origin"]:
-                    node_doc["tags"]["origin_host_pool"] = {
+                    node_doc["tags"]["details"]["origin_host_pool"] = {
                         "origin_match" : True
                     }
             else:
@@ -441,7 +441,7 @@ class NodeHealthMonitorTask(Task):
         if task_result.result_json["ip_in_host_pool"]:
             task_result.result_json["origin_host_pool"] = node_doc["tags"]["details"]["origin_host_pool"]
             task_result.result_json["vm_name_host_pool"] = node_doc["tags"]["details"]["vm_name_host_pool"]
-            task_result.result_json["os_version_host_pool"] = node_doc["tags"]["Details"]["os_version_host_pool"]
+            task_result.result_json["os_version_host_pool"] = node_doc["tags"]["details"]["os_version_host_pool"]
 
     def __init__(self, params, max_workers=None):
         """
