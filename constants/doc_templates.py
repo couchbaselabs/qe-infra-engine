@@ -9,7 +9,11 @@ HOST_TEMPLATE = {
     "poolId" : "",
     "group" : "",
     "xen_username" : "",
-    "xen_password" : ""
+    "xen_password" : "",
+    "tags" : {
+        "list" : [],
+        "details" : {}
+    }
 }
 
 NODE_TEMPLATE = {
@@ -24,8 +28,10 @@ NODE_TEMPLATE = {
     "prevUser": "",
     "state": "",
     "username": "",
-    "added_on" : "",
-    "tags" : {}
+    "tags" : {
+        "list" : [],
+        "details" : {}
+    }
 }
 
 VM_TEMPLATE = {
@@ -38,5 +44,32 @@ VM_TEMPLATE = {
     "state" : "",
     "poolId" : "",
     "group" : "",
-    "host" : ""
+    "host" : "",
+    "tags" : {
+        "list" : [],
+        "details" : {}
+    }
+}
+
+SLAVE_TEMPLATE = {
+    "ipaddr" : "",
+    "name" : "",
+    "description" : "",
+    "labels" : [],
+    "os" : "",
+    "os_version" : "",
+    "state" : "",
+    "memory" : "",
+    "tags" : {},
+    "mac_address": "",
+    "origin": "",
+    "name_label" : "",
+    "jenkins_host" : "",
+    "num_executors" : 0,
+    "remote_fs": "",
+    "usage_mode" : "",
+    "tags" : {
+        "list" : [],
+        "details" : {}
+    }
 }
