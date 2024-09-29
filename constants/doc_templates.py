@@ -11,7 +11,7 @@ HOST_TEMPLATE = {
     "xen_username" : "",
     "xen_password" : "",
     "tags" : {
-        "list" : set(),
+        "list" : [],
         "details" : {}
     }
 }
@@ -29,7 +29,7 @@ NODE_TEMPLATE = {
     "state": "",
     "username": "",
     "tags" : {
-        "list" : set(),
+        "list" : [],
         "details" : {}
     }
 }
@@ -46,7 +46,7 @@ VM_TEMPLATE = {
     "group" : "",
     "host" : "",
     "tags" : {
-        "list" : set(),
+        "list" : [],
         "details" : {}
     }
 }
@@ -69,7 +69,7 @@ SLAVE_TEMPLATE = {
     "remote_fs": "",
     "usage_mode" : "",
     "tags" : {
-        "list" : set(),
+        "list" : [],
         "details" : {}
     }
 }
