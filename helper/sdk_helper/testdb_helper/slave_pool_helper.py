@@ -52,7 +52,7 @@ class SlavePoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
     def get_slave_pool_doc(self, name):
         return self.get_doc(client=self.slave_doc_connection,
                             key=name)
-    
+
     def delete_slave_pool_doc(self, name):
         key = name
         return self.delete_doc(client=self.slave_doc_connection,
@@ -60,6 +60,18 @@ class SlavePoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
                                bucket_name=self.slave_pool_bucket_name,
                                scope=self.slave_doc_scope_name,
                                collection=self.slave_doc_collection_name)
+
+    def fetch_all_slaves(self):
+        return self.fetch_all_docs(client=self.slave_doc_connection,
+                                   bucket_name=self.slave_pool_bucket_name,
+                                   scope=self.slave_doc_scope_name,
+                                   collection=self.slave_doc_collection_name)
+
+    def fetch_all_jenkins_slaves(self):
+        return self.fetch_all_docs(client=self.jenkins_doc_connection,
+                                   bucket_name=self.slave_pool_bucket_name,
+                                   scope=self.jenkins_doc_scope_name,
+                                   collection=self.jenkins_doc_collection_name)
 
 
 

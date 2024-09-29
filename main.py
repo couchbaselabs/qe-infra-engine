@@ -16,6 +16,32 @@ import argparse
 import json
 from tasks.task_builder import TaskBuilder
 
+def create_csv_reports(state, output_directory):
+
+    output_dir =  os.path.join(output_directory, state)
+    if not os.path.exists(output_dir):
+        print(f"Creating directory {output_dir}")
+        try:
+            os.makedirs(output_dir)
+        except Exception as e:
+            print(f"Error creating directory {output_dir} : {e}")
+            return
+
+    params = {
+        "get_node_pool": True,
+        "get_slave_pool": True,
+        "get_host_pool": True,
+        "results_dir" : output_dir
+    }
+
+    task = TaskBuilder.fetch_task("get_csv_task", params=params)
+    task.execute()
+    json_result = task.generate_json_result()
+    
+    local_file_path = os.path.join(output_dir, f"result.json")
+    with open(local_file_path, "w") as json_file:
+        json.dump(json_result, json_file)
+
 def create_log_file(output_directory):
     logging_conf_path = os.path.join(script_dir, "logging.conf")
     logging_conf = open(logging_conf_path)
@@ -75,6 +101,9 @@ def parse_arguments():
     return task_name, vars(args)
 
 def fetch_and_run_task(task_name, params, output_dir):
+
+    create_csv_reports("pre", output_dir)
+
     task = TaskBuilder.fetch_task(task_name, params)
     task.execute()
     json_result = task.generate_json_result()
@@ -82,6 +111,8 @@ def fetch_and_run_task(task_name, params, output_dir):
     local_file_path = os.path.join(output_dir, f"result.json")
     with open(local_file_path, "w") as json_file:
         json.dump(json_result, json_file)
+
+    create_csv_reports("post", output_dir)
 
 def main():
 

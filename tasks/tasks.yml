@@ -151,3 +151,27 @@ reconnect_slaves_task:
         - --data
       type: json.loads
       help: "The data of slaves to be reconnected in jenkins. The data is expected to be a json string. The json should comprise of a list of dictionary of slaves"
+get_csv_task:
+  path: tasks/infra_tasks/get_csv.py
+  class: GetCSVTask
+  params:
+    get_node_pool:
+      flags:
+        - --get_node_pool
+      type: bool
+      help: "Fetches all document of QE-server-pool and converts to csv"
+    get_slave_pool:
+      flags:
+        - --get_slave_pool
+      type: bool
+      help: "Fetches all document of QE-slave-pool and converts to csv"
+    get_host_pool:
+      flags:
+        - --get_host_pool
+      type: bool
+      help: "Fetches all document of QE-host-pool and converts to csv"
+    results_dir:
+      flags:
+        - --results_dir
+      type: str
+      help: "The results directory to which the csv files need to be stored"
