@@ -58,11 +58,13 @@ class AddHostTask(Task):
         host_doc["group"] = group
         host_doc["xen_username"] = xen_username
         host_doc["xen_password"] = xen_password
-        host_doc["tags"] = {}
+        host_doc["tags"] = {"list" : [], "details" : {}}
         if "rebootRequired" in host_data:
-            host_doc["tags"]["reboot_required"] = host_data["rebootRequired"]
+            host_doc["tags"]["details"]["reboot_required"] = host_data["rebootRequired"]
+            if bool(host_doc["tags"]["details"]["reboot_required"]):
+                host_doc["tags"]["list"].append("reboot_required")
         else:
-            host_doc["tags"]["reboot_required"] = False
+            host_doc["tags"]["details"]["reboot_required"] = False
 
         try:
             res = host_pool_helper.update_host(doc=host_doc)
@@ -136,8 +138,7 @@ class AddHostTask(Task):
                 vm_doc["poolId"] = vm["$poolId"]
             vm_doc["group"] = group
             vm_doc["host"] = host
-            vm_doc["tags"] = {}
-
+            vm_doc["tags"] = {"list" : [], "details" : {}}
             task_result.result_json[vm_doc["name_label"]] = {}
             try:
                 res = host_pool_helper.update_vm(doc=vm_doc)
@@ -292,7 +293,7 @@ class AddHostTask(Task):
         """
         task_name = AddHostTask.__name__
         if max_workers is None:
-            max_workers = 100
+            max_workers = 2000
         super().__init__(task_name, max_workers)
 
         if "data" not in params or params["data"] is None:

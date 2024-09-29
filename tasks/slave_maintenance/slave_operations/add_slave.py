@@ -154,7 +154,7 @@ class AddSlavesTask(Task):
         doc['os_version'] = os_version
         doc['state'] = 'running'
         doc['memory'] = memory
-        doc['tags'] = {}
+        doc['tags'] = {"list" : [], "details" : {}}
         doc['mac_address'] = mac_address
         doc['origin'] = slave['origin']
         doc['name_label'] = slave['name_label']

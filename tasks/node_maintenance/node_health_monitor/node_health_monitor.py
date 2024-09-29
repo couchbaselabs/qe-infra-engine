@@ -18,6 +18,19 @@ from constants.doc_templates import NODE_TEMPLATE
 
 class NodeHealthMonitorTask(Task):
 
+    def _initialize_tags(self, doc: dict):
+        if "tags" not in doc:
+            doc["tags"] = {}
+        if "list" not in doc["tags"]:
+            doc["tags"]["list"] = []
+        if "details" not in doc["tags"]:
+            doc["tags"]["details"] = {}
+
+    def _flush_tags_list(self, doc: dict, tags: list):
+        for tag in tags:
+            if tag in doc["tags"]["list"]:
+                doc["tags"]["list"] = list(filter(lambda x: x !=tag, doc["tags"]["list"]))
+
     def check_connectivity_sub_task(self, task_result, params):
         if "node" not in params:
             self.set_subtask_exception(ValueError("Invalid arguments passed"))
@@ -30,17 +43,19 @@ class NodeHealthMonitorTask(Task):
             exception = f"Cannot connect to Server Pool using SDK : {e}"
             self.set_subtask_exception(exception)
 
-        if "tags" not in node_doc:
-           node_doc["tags"] = {}
+        self._initialize_tags(node_doc)
+        tags = ["unreachable"]
+        self._flush_tags_list(node_doc, tags)
 
         try:
             RemoteConnectionObjectFactory.fetch_helper(ipaddr,"root","couchbase")
-            node_doc["tags"]["connection_check"] = True
+            node_doc["tags"]["details"]["connection_check"] = True
             # node_doc["state"] = "available" \
             #     if node_doc["state"] == "unreachable"\
             #         else node_doc["state"]
         except Exception as e:
-            node_doc["tags"]["connection_check"] = False
+            node_doc["tags"]["details"]["connection_check"] = False
+            node_doc["tags"]["list"].append("unreachable")
             # node_doc["state"] = "unreachable"
 
         try:
@@ -48,15 +63,13 @@ class NodeHealthMonitorTask(Task):
             if not res:
                 exception = f"Cannot upsert node {ipaddr} with node-connectivity checks to server pool"
                 self.set_subtask_exception(exception)
-
             self.logger.info(f"Document for node {ipaddr} with node-connectivity checks upserted to server pool successfuly")
-
         except Exception as e:
             exception = f"Cannot upsert node {ipaddr} with node-connectivity checks to server pool : {e}"
             self.set_subtask_exception(exception)
 
         task_result.result_json = {}
-        task_result.result_json["connection_check"] = node_doc["tags"]["connection_check"]
+        task_result.result_json["connection_check"] = node_doc["tags"]["details"]["connection_check"]
 
     def check_connectivity2_sub_task(self, task_result, params):
         if "node" not in params:
@@ -141,13 +154,17 @@ class NodeHealthMonitorTask(Task):
                 connection_errors.add("generic.Exception")
                 self.logger.error(f'Unable to connect to {ipaddr} : {e}')
 
-        if "tags" not in node_doc:
-            node_doc["tags"] = {}
+        self._initialize_tags(node_doc)
+        tags = ["unreachable"]
+        self._flush_tags_list(node_doc, tags)
 
-        node_doc["tags"]["connection_check"] = connection
+
+        node_doc["tags"]["details"]["connection_check"] = connection
+        if not connection:
+            node_doc["tags"]["list"].append("unreachable")
 
         if len(connection_errors) > 1:
-            node_doc["tags"]["connection_check_err"] = ' '.join(str(item) for item in connection_errors)
+            node_doc["tags"]["details"]["connection_check_err"] = ' '.join(str(item) for item in connection_errors)
 
         try:
             res = server_pool_helper.upsert_node_to_server_pool(node_doc)
@@ -162,9 +179,9 @@ class NodeHealthMonitorTask(Task):
             self.set_subtask_exception(exception)
 
         task_result.result_json = {}
-        task_result.result_json["connection_check"] = node_doc["tags"]["connection_check"]
-        if "connection_check_err" in node_doc["tags"]:
-            task_result.result_json["connection_check_err"] = node_doc["tags"]["connection_check_err"]
+        task_result.result_json["connection_check"] = node_doc["tags"]["details"]["connection_check"]
+        if "connection_check_err" in node_doc["tags"]["details"]:
+            task_result.result_json["connection_check_err"] = node_doc["tags"]["details"]["connection_check_err"]
 
     def field_consistency_sub_task(self, task_result, params):
         if "node" not in params:
@@ -180,8 +197,9 @@ class NodeHealthMonitorTask(Task):
             exception = f"Cannot connect to Server Pool using SDK : {e}"
             self.set_subtask_exception(exception)
 
-        if "tags" not in node_doc:
-            node_doc["tags"] = {}
+        self._initialize_tags(node_doc)
+        tags = ["no_fields_consistency"]
+        self._flush_tags_list(node_doc, tags)
 
         fields_required = list(NODE_TEMPLATE.keys())
         # TODO - Remove the following line after server-pool cleanup
@@ -198,17 +216,18 @@ class NodeHealthMonitorTask(Task):
                 fields_extra.append(field)
 
         if len(fields_absent) == 0 and len(fields_extra) == 0:
-            node_doc["tags"]["field_consistency"] = {
+            node_doc["tags"]["details"]["field_consistency"] = {
                 "fields_match" : True
             }
         else:
-            node_doc["tags"]["field_consistency"] = {
+            node_doc["tags"]["list"].append("no_fields_consistency")
+            node_doc["tags"]["details"]["field_consistency"] = {
                 "fields_match" : False
             }
             if len(fields_absent) > 0:
-                node_doc["tags"]["field_consistency"]["fields_absent"] = fields_absent
+                node_doc["tags"]["details"]["field_consistency"]["fields_absent"] = fields_absent
             if len(fields_extra) > 0:
-                node_doc["tags"]["field_consistency"]["fields_extra"] = fields_extra
+                node_doc["tags"]["details"]["field_consistency"]["fields_extra"] = fields_extra
 
         try:
             res = server_pool_helper.upsert_node_to_server_pool(node_doc)
@@ -224,7 +243,7 @@ class NodeHealthMonitorTask(Task):
 
 
         task_result.result_json = {}
-        task_result.result_json["field_consistency"] = node_doc["tags"]["field_consistency"]
+        task_result.result_json["field_consistency"] = node_doc["tags"]["details"]["field_consistency"]
 
     def node_stats_match_sub_task(self, task_result, params):
         if "node" not in params:
@@ -234,13 +253,12 @@ class NodeHealthMonitorTask(Task):
         ipaddr = node_doc["ipaddr"]
 
         # TODO - Remove post cleaning up of server pool
-        if "tags" not in node_doc and "connection_check" not in node_doc["tags"]:
+        if "tags" not in node_doc and "connection_check" not in node_doc["tags"]["details"]:
             exception = f"OS version check was run before connection checks for {ipaddr}"
             self.set_subtask_exception(exception)
-        elif not node_doc["tags"]["connection_check"]:
+        elif not node_doc["tags"]["details"]["connection_check"]:
             exception = f"The node is unreachable, cannot perform os version checks for {ipaddr}"
             self.set_subtask_exception(exception)
-
 
         try:
             server_pool_helper = ServerPoolSDKHelper()
@@ -249,8 +267,9 @@ class NodeHealthMonitorTask(Task):
             exception = f"Cannot connect to Server Pool using SDK : {e}"
             self.set_subtask_exception(exception)
 
-        if "tags" not in node_doc:
-            node_doc["tags"] = {}
+        self._initialize_tags(node_doc)
+        tags = ["mac_address_node_mismatch", "memory_node_mismatch", "os_node_mismatch"]
+        self._flush_tags_list(node_doc, tags)
 
         try:
             remote_connection_helper = RemoteConnectionObjectFactory.fetch_helper(ipaddr,"root","couchbase")
@@ -265,14 +284,15 @@ class NodeHealthMonitorTask(Task):
             self.set_subtask_exception(exception)
 
         if "mac_address" in node_doc and mac_address_in_node == node_doc["mac_address"]:
-            node_doc["tags"]["mac_address_node_check"] = {
+            node_doc["tags"]["details"]["mac_address_node_check"] = {
                 "mac_address_node_match" : True
             }
         else:
-            node_doc["tags"]["mac_address_node_check"] = {
+            node_doc["tags"]["details"]["mac_address_node_check"] = {
                 "mac_address_node_match" : False,
                 "mac_address_in_node" : mac_address_in_node
             }
+            node_doc["tags"]["list"].append("mac_address_node_mismatch")
 
         try:
             memory_in_node = remote_connection_helper.find_memory_total()
@@ -281,14 +301,15 @@ class NodeHealthMonitorTask(Task):
             self.set_subtask_exception(exception)
 
         if "memory" in node_doc and memory_in_node == node_doc["memory"]:
-            node_doc["tags"]["memory_node_check"] = {
+            node_doc["tags"]["details"]["memory_node_check"] = {
                 "memory_node_match" : True
             }
         else:
-            node_doc["tags"]["memory_node_check"] = {
+            node_doc["tags"]["details"]["memory_node_check"] = {
                 "memory_node_match" : False,
                 "memory_in_node" : memory_in_node
             }
+            node_doc["tags"]["list"].append("memory_node_mismatch")
 
         try:
             os_node = remote_connection_helper.find_os_version()
@@ -297,15 +318,15 @@ class NodeHealthMonitorTask(Task):
             self.set_subtask_exception(exception)
 
         if "os_version" in node_doc and os_node == node_doc["os_version"]:
-            node_doc["tags"]["os_node_check"] = {
+            node_doc["tags"]["details"]["os_node_check"] = {
                 "os_node_match" : True
             }
         else:
-            node_doc["tags"]["os_node_check"] = {
+            node_doc["tags"]["details"]["os_node_check"] = {
                 "os_node_match" : False,
                 "os_in_node" : os_node
             }
-
+            node_doc["tags"]["list"].append("os_node_mismatch")
 
         try:
             res = server_pool_helper.upsert_node_to_server_pool(node_doc)
@@ -320,9 +341,9 @@ class NodeHealthMonitorTask(Task):
             self.set_subtask_exception(exception)
 
         task_result.result_json = {}
-        task_result.result_json["mac_address_node_match"] = node_doc["tags"]["mac_address_node_check"]
-        task_result.result_json["memory_node_match"] = node_doc["tags"]["memory_node_check"]
-        task_result.result_json["os_node_match"] = node_doc["tags"]["os_node_check"]
+        task_result.result_json["mac_address_node_match"] = node_doc["tags"]["details"]["mac_address_node_check"]
+        task_result.result_json["memory_node_match"] = node_doc["tags"]["details"]["memory_node_check"]
+        task_result.result_json["os_node_match"] = node_doc["tags"]["details"]["os_node_check"]
 
     def host_pool_check_sub_task(self, task_result, params):
         if "node" not in params:
@@ -345,8 +366,9 @@ class NodeHealthMonitorTask(Task):
             exception = f"Cannot connect to Server Pool using SDK : {e}"
             self.set_subtask_exception(exception)
 
-        if "tags" not in node_doc:
-            node_doc["tags"] = {}
+        self._initialize_tags(node_doc)
+        tags = ["ip_not_in_host_pool", "origin_host_pool_mismatch", "vm_name_host_pool_mismatch", "os_host_pool_mismatch"]
+        self._flush_tags_list(node_doc, tags)
 
         try:
             vms = host_sdk_helper.fetch_vm(ipaddr=ipaddr)
@@ -361,27 +383,29 @@ class NodeHealthMonitorTask(Task):
             self.set_subtask_exception(exception)
 
         if len(vms) == 0:
-            node_doc["tags"]["ip_in_host_pool"] = False
+            node_doc["tags"]["details"]["ip_in_host_pool"] = False
+            node_doc["tags"]["list"].append("ip_not_in_host_pool")
         else:
-            node_doc["tags"]["ip_in_host_pool"] = True
-
+            node_doc["tags"]["details"]["ip_in_host_pool"] = True
             vm = vms[0]
             if "origin" in node_doc and vm["host"] == node_doc["origin"]:
-                    node_doc["tags"]["origin_host_pool"] = {
+                    node_doc["tags"]["details"]["origin_host_pool"] = {
                         "origin_match" : True
                     }
             else:
-                node_doc["tags"]["origin_host_pool"] = {
+                node_doc["tags"]["list"].append("origin_host_pool_mismatch")
+                node_doc["tags"]["details"]["origin_host_pool"] = {
                     "origin_match" : False,
                     "origin_host_pool" : vm["host"]
                 }
 
             if "vm_name" in node_doc and vm["name_label"] == node_doc["vm_name"]:
-                node_doc["tags"]["vm_name_host_pool"] = {
+                node_doc["tags"]["details"]["vm_name_host_pool"] = {
                     "vm_name_match" : True
                 }
             else:
-                node_doc["tags"]["vm_name_host_pool"] = {
+                node_doc["tags"]["list"].append("vm_name_host_pool_mismatch")
+                node_doc["tags"]["details"]["vm_name_host_pool"] = {
                     "vm_name_match" : False,
                     "vm_name_host_pool" : vm["name_label"]
                 }
@@ -390,11 +414,12 @@ class NodeHealthMonitorTask(Task):
                 vm["os_version"] = "unknown"
 
             if "os_version" in node_doc and vm["os_version"] == node_doc["os_version"]:
-                node_doc["tags"]["os_version_host_pool"] = {
+                node_doc["tags"]["details"]["os_version_host_pool"] = {
                     "os_version_match" : True
                 }
             else:
-                node_doc["tags"]["os_version_host_pool"] = {
+                node_doc["tags"]["list"].append("os_host_pool_mismatch")
+                node_doc["tags"]["details"]["os_version_host_pool"] = {
                     "os_version_match" : False,
                     "os_version_host_pool" : vm["os_version"]
                 }
@@ -412,11 +437,11 @@ class NodeHealthMonitorTask(Task):
             self.set_subtask_exception(exception)
 
         task_result.result_json = {}
-        task_result.result_json["ip_in_host_pool"] = node_doc["tags"]["ip_in_host_pool"]
+        task_result.result_json["ip_in_host_pool"] = node_doc["tags"]["details"]["ip_in_host_pool"]
         if task_result.result_json["ip_in_host_pool"]:
-            task_result.result_json["origin_host_pool"] = node_doc["tags"]["origin_host_pool"]
-            task_result.result_json["vm_name_host_pool"] = node_doc["tags"]["vm_name_host_pool"]
-            task_result.result_json["os_version_host_pool"] = node_doc["tags"]["os_version_host_pool"]
+            task_result.result_json["origin_host_pool"] = node_doc["tags"]["details"]["origin_host_pool"]
+            task_result.result_json["vm_name_host_pool"] = node_doc["tags"]["details"]["vm_name_host_pool"]
+            task_result.result_json["os_version_host_pool"] = node_doc["tags"]["details"]["os_version_host_pool"]
 
     def __init__(self, params, max_workers=None):
         """
