@@ -35,7 +35,7 @@ def create_log_file(output_directory):
 
 def parse_arguments():
     if len(sys.argv) < 2:
-        print("Usage: python a.py <task_name>")
+        print("Usage: python main.py <task_name>")
         sys.exit(1)
 
     tasks_file_path = os.path.join(script_dir, "tasks", "tasks.yml")
@@ -44,7 +44,7 @@ def parse_arguments():
         tasks_data = yaml.safe_load(file)
 
     if sys.argv[1] not in tasks_data:
-        print("Usage: python a.py <task_name>")
+        print("Usage: python main.py <task_name>")
         raise ValueError(f"Given task {sys.argv[1]} not found")
 
     task_name = sys.argv[1]
