@@ -73,3 +73,17 @@ SLAVE_TEMPLATE = {
         "details" : {}
     }
 }
+
+TASK_TEMPLATE = {
+    "task_id" : "",
+    "task_name": "",
+    "start_time": "",
+    "end_time": "",
+    "state": "",
+    "result": False,
+}
+
+TASK_RESULT_TEMPLATE = {
+    "task_id" : "",
+    "result": {}
+}
