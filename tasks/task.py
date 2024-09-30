@@ -2,6 +2,7 @@ import logging
 import concurrent
 import uuid
 from tasks.task_result import TaskResult
+from helper.sdk_helper.testdb_helper.task_pool_helper import TaskPoolSDKHelper
 class Task:
     def __init__(self, task_name, max_workers):
         self.task_name = task_name
@@ -11,12 +12,38 @@ class Task:
         self.subtasks = {}
         self.executor_pool = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
 
+        try:
+            self.task_pool_helper = TaskPoolSDKHelper()
+            self.logger.info(f"Connection to Task Pool successful")
+        except Exception as e:
+            exception = f"Cannot connect to Task Pool using SDK : {e}"
+            raise Exception(exception)
+        
+        try:
+            self.task_pool_helper.create_task_doc(self.id, self.task_name)
+        except Exception as e:
+            exception = f"Cannot create task document and add to task pool using SDK : {e}"
+            raise Exception(exception)
+
     def start_task(self):
         self.logger.info(f"Starting task {self.task_name}_{self.id}")
         self.task_result.start_task()
 
+        try:
+            self.task_pool_helper.update_task_started(self.id, self.task_result.start_time)
+        except Exception as e:
+            exception = f"Cannot create task document and add to task pool using SDK : {e}"
+            raise Exception(exception)
+        
+
     def complete_task(self, result):
         self.task_result.complete_task(result)
+
+        try:
+            self.task_pool_helper.update_task_completed(self.id, self.task_result.end_time, result)
+        except Exception as e:
+            exception = f"Cannot create task document and add to task pool using SDK : {e}"
+            raise Exception(exception)
 
     def set_exception(self, exception):
         self.task_result.set_exception(exception)
