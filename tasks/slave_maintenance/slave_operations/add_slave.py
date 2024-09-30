@@ -257,4 +257,10 @@ class AddSlavesTask(Task):
            for sub_task_name in self.task_result.result_json[doc_key]:
                res = TaskResult.generate_json_result(self.task_result.subtasks[doc_key][sub_task_name], timeout=timeout)
                self.task_result.result_json[doc_key][sub_task_name] = res
+
+        try:
+            self.task_pool_helper.add_results_to_task(self.id, self.task_result.result_json)
+        except Exception as e:
+            exception = ValueError(f"host_tasks param has to be a list : {params['host_tasks']}")
+            self.set_exception(exception)
         return self.task_result.result_json

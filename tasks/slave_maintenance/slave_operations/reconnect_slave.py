@@ -104,3 +104,11 @@ class ReconnectSlavesTask(Task):
 
         self.complete_task(result=True)
 
+    def generate_json_result(self, timeout=3600):
+        super().generate_json_result(timeout)
+    
+        try:
+            self.task_pool_helper.add_results_to_task(self.id, self.task_result.result_json)
+        except Exception as e:
+            exception = ValueError(f"host_tasks param has to be a list : {params['host_tasks']}")
+            self.set_exception(exception)

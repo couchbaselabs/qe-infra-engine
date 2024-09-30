@@ -144,6 +144,12 @@ class UpdateHostsTask(Task):
             self.task_result.result_json[label]["update_host_data"] = self.add_host_task.task_result.result_json[label]
             self.task_result.result_json[label]["delete_vms_data"] = TaskResult.generate_json_result(self.task_result.subtasks["delete_vms_data"][label])
 
+        try:
+            self.task_pool_helper.add_results_to_task(self.id, self.task_result.result_json)
+        except Exception as e:
+            exception = ValueError(f"host_tasks param has to be a list : {params['host_tasks']}")
+            self.set_exception(exception)
+
         return self.task_result.result_json
 
 

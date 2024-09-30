@@ -298,4 +298,9 @@ class ChangeSlavesTask(Task):
                 if slave["name"] not in self.task_result.result_json:
                     self.task_result.result_json[slave["name"]] = {}
                 self.task_result.result_json[slave["name"]]["remove_slave_task"] = self.remove_slave_task.generate_json_result(timeout=timeout)[slave["name"]]
+        try:
+            self.task_pool_helper.add_results_to_task(self.id, self.task_result.result_json)
+        except Exception as e:
+            exception = ValueError(f"host_tasks param has to be a list : {params['host_tasks']}")
+            self.set_exception(exception)
         return self.task_result.result_json

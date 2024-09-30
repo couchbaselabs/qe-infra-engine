@@ -598,4 +598,11 @@ class HostHealthMonitorTask(Task):
             for vm in self.task_result.subtasks["vm_tasks"][host]:
                 result_json["monitor_task"][host]["vm_tasks"][vm] = TaskResult.generate_json_result(self.task_result.subtasks["vm_tasks"][host][vm])
         self.task_result.result_json = result_json
+
+        try:
+            self.task_pool_helper.add_results_to_task(self.id, self.task_result.result_json)
+        except Exception as e:
+            exception = ValueError(f"host_tasks param has to be a list : {params['host_tasks']}")
+            self.set_exception(exception)
+
         return self.task_result.result_json
