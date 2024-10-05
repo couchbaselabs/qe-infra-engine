@@ -20,30 +20,31 @@ class Task:
             exception = f"Cannot connect to Task Pool using SDK : {e}"
             raise Exception(exception)
 
-        try:
-            self.task_pool_helper.create_task_doc(self.id, self.task_name)
-        except Exception as e:
-            exception = f"Cannot create task document and add to task pool using SDK : {e}"
-            raise Exception(exception)
+        if self.store_results:
+            try:
+                self.task_pool_helper.create_task_doc(self.id, self.task_name)
+            except Exception as e:
+                exception = f"Cannot create task document and add to task pool using SDK : {e}"
+                raise Exception(exception)
 
     def start_task(self):
         self.logger.info(f"Starting task {self.task_name}_{self.id}")
         self.task_result.start_task()
-
-        try:
-            self.task_pool_helper.update_task_started(self.id, self.task_result.start_time)
-        except Exception as e:
-            exception = f"Cannot create task document and add to task pool using SDK : {e}"
-            raise Exception(exception)
+        if self.store_results:
+            try:
+                self.task_pool_helper.update_task_started(self.id, self.task_result.start_time)
+            except Exception as e:
+                exception = f"Cannot create task document and add to task pool using SDK : {e}"
+                raise Exception(exception)
 
     def complete_task(self, result):
         self.task_result.complete_task(result)
-
-        try:
-            self.task_pool_helper.update_task_completed(self.id, self.task_result.end_time, result)
-        except Exception as e:
-            exception = f"Cannot create task document and add to task pool using SDK : {e}"
-            raise Exception(exception)
+        if self.store_results:
+            try:
+                self.task_pool_helper.update_task_completed(self.id, self.task_result.end_time, result)
+            except Exception as e:
+                exception = f"Cannot create task document and add to task pool using SDK : {e}"
+                raise Exception(exception)
 
     def set_exception(self, exception):
         self.task_result.set_exception(exception)
