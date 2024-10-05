@@ -175,3 +175,28 @@ get_csv_task:
         - --results_dir
       type: str
       help: "The results directory to which the csv files need to be stored"
+get_json_task:
+  path: tasks/infra_tasks/get_json.py
+  class: GetJSONTask
+  params:
+    get_node_pool:
+      flags:
+        - --get_node_pool
+      type: bool
+      help: "Fetches all document of QE-server-pool and converts to json"
+    get_slave_pool:
+      flags:
+        - --get_slave_pool
+      type: bool
+      help: "Fetches all document of QE-slave-pool and converts to json"
+    get_host_pool:
+      flags:
+        - --get_host_pool
+      type: bool
+      help: "Fetches all document of QE-host-pool and converts to json"
+    results_dir:
+      flags:
+        - --results_dir
+      type: str
+      help: "The results directory to which the json files need to be stored"
+  
