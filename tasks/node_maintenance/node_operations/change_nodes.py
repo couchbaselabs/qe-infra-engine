@@ -48,7 +48,7 @@ class ChangeNodesTask(Task):
         task_name = ChangeNodesTask.__name__
         if max_workers is None:
             max_workers = 100
-        super().__init__(task_name, max_workers)
+        super().__init__(task_name, max_workers, store_results=True)
 
         if "data" not in params or params["data"] is None:
             exception = ValueError(f"Data is not present to add to server-pool")
@@ -97,12 +97,3 @@ class ChangeNodesTask(Task):
         self.add_nodes_task.execute()
 
         self.complete_task(result=True)
-
-    def generate_json_result(self, timeout=3600):
-        super().generate_json_result(timeout)
-
-        try:
-            self.task_pool_helper.add_results_to_task(self.id, self.task_result.result_json)
-        except Exception as e:
-            exception = ValueError(f"host_tasks param has to be a list : {params['host_tasks']}")
-            self.set_exception(exception)

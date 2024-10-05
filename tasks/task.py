@@ -4,12 +4,13 @@ import uuid
 from tasks.task_result import TaskResult
 from helper.sdk_helper.testdb_helper.task_pool_helper import TaskPoolSDKHelper
 class Task:
-    def __init__(self, task_name, max_workers):
+    def __init__(self, task_name, max_workers, store_results=False):
         self.task_name = task_name
         self.id = uuid.uuid4()
         self.logger = logging.getLogger("tasks")
         self.task_result = TaskResult()
         self.subtasks = {}
+        self.store_results = store_results
         self.executor_pool = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
 
         try:
@@ -18,7 +19,7 @@ class Task:
         except Exception as e:
             exception = f"Cannot connect to Task Pool using SDK : {e}"
             raise Exception(exception)
-        
+
         try:
             self.task_pool_helper.create_task_doc(self.id, self.task_name)
         except Exception as e:
@@ -34,7 +35,6 @@ class Task:
         except Exception as e:
             exception = f"Cannot create task document and add to task pool using SDK : {e}"
             raise Exception(exception)
-        
 
     def complete_task(self, result):
         self.task_result.complete_task(result)
@@ -50,7 +50,7 @@ class Task:
         self.logger.error(exception)
         self.complete_task(result=False)
         raise self.task_result.exception
-    
+
     def set_subtask_exception(self, exception: str | Exception):
         if not isinstance(exception, Exception):
             exception = Exception(exception)
@@ -85,7 +85,17 @@ class Task:
         return task_result
 
     def generate_json_result(self, timeout=3600):
-        return TaskResult.generate_json_result(self.task_result)
+        TaskResult.generate_json_result(self.task_result, timeout=timeout)
+        if self.store_results:
+            self.add_task_result_to_db()
+        return self.task_result.result_json
 
     def execute(self):
         raise NotImplementedError("The execute for the task is not implemented")
+
+    def add_task_result_to_db(self):
+        try:
+            self.task_pool_helper.add_results_to_task(self.id, self.task_result.result_json)
+        except Exception as e:
+            exception = f"Cannot add task result to task pool : {e}"
+            self.set_exception(exception)

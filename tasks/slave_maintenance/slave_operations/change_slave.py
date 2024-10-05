@@ -168,7 +168,7 @@ class ChangeSlavesTask(Task):
         task_name = ChangeSlavesTask.__name__
         if max_workers is None:
             max_workers = 100
-        super().__init__(task_name, max_workers)
+        super().__init__(task_name, max_workers, store_results=True)
 
         if "data" not in params or params["data"] is None:
             exception = ValueError(f"Data is not present to add to slave-pool")
@@ -298,9 +298,8 @@ class ChangeSlavesTask(Task):
                 if slave["name"] not in self.task_result.result_json:
                     self.task_result.result_json[slave["name"]] = {}
                 self.task_result.result_json[slave["name"]]["remove_slave_task"] = self.remove_slave_task.generate_json_result(timeout=timeout)[slave["name"]]
-        try:
-            self.task_pool_helper.add_results_to_task(self.id, self.task_result.result_json)
-        except Exception as e:
-            exception = ValueError(f"host_tasks param has to be a list : {params['host_tasks']}")
-            self.set_exception(exception)
+
+        if self.store_results:
+            self.add_task_result_to_db()
+
         return self.task_result.result_json

@@ -32,7 +32,7 @@ class TaskManager:
             self.subtasks[task_id][1].set_exception(e)
 
         task_result = self.running_tasks[task_id][1].task_result
-        TaskResult.generate_json_result(task_result)
+        self.running_tasks[task_id][1].generate_json_result()
         self.running_tasks.pop(task_id, None)
         return task_result
 

@@ -205,7 +205,7 @@ class GetCSVTask(Task):
         task_name = GetCSVTask.__name__
         if max_workers is None:
             max_workers = 3
-        super().__init__(task_name, max_workers)
+        super().__init__(task_name, max_workers, store_results=False)
 
 
         if "get_node_pool" not in params or params["get_node_pool"] is None:
