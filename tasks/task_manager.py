@@ -1,7 +1,6 @@
 import concurrent.futures
 import logging
 from tasks.task import Task
-from tasks.task_result import TaskResult
 
 class TaskManager:
     def __init__(self, max_workers) -> None:
