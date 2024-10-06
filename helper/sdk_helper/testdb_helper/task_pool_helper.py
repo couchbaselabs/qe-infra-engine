@@ -112,11 +112,3 @@ class TaskPoolSDKHelper(TestDBSDKHelper, metaclass=SingeltonMetaClass):
                                bucket_name=self.task_pool_bucket_name,
                                scope=self.results_doc_scope_name,
                                collection=self.results_doc_collection_name)
-
-
-
-
-
-
-
-
