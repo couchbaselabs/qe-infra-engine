@@ -83,7 +83,7 @@ class UpdateHostsTask(Task):
         task_name = UpdateHostsTask.__name__
         if max_workers is None:
             max_workers = 2000
-        super().__init__(task_name, max_workers)
+        super().__init__(task_name, max_workers, store_results=True)
 
         if "data" not in params or params["data"] is None:
             exception = ValueError(f"Data is not present to update host-pool")
@@ -143,6 +143,9 @@ class UpdateHostsTask(Task):
             self.task_result.result_json[label] = {}
             self.task_result.result_json[label]["update_host_data"] = self.add_host_task.task_result.result_json[label]
             self.task_result.result_json[label]["delete_vms_data"] = TaskResult.generate_json_result(self.task_result.subtasks["delete_vms_data"][label])
+
+        if self.store_results:
+            self.add_task_result_to_db()
 
         return self.task_result.result_json
 

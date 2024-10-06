@@ -427,7 +427,7 @@ class HostHealthMonitorTask(Task):
         task_name = HostHealthMonitorTask.__name__
         if max_workers is None:
             max_workers = 2000
-        super().__init__(task_name, max_workers)
+        super().__init__(task_name, max_workers, store_results=True)
 
         if "update_docs" not in params:
             exception = ValueError(f"update_docs is not present in params : {params}")
@@ -598,4 +598,8 @@ class HostHealthMonitorTask(Task):
             for vm in self.task_result.subtasks["vm_tasks"][host]:
                 result_json["monitor_task"][host]["vm_tasks"][vm] = TaskResult.generate_json_result(self.task_result.subtasks["vm_tasks"][host][vm])
         self.task_result.result_json = result_json
+
+        if self.store_results:
+            self.add_task_result_to_db()
+
         return self.task_result.result_json

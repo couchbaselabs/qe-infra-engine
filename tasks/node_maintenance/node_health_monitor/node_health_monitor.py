@@ -457,7 +457,7 @@ class NodeHealthMonitorTask(Task):
         task_name = NodeHealthMonitorTask.__name__
         if max_workers is None:
             max_workers = 100
-        super().__init__(task_name, max_workers)
+        super().__init__(task_name, max_workers, store_results=True)
 
         if "poolId" not in params:
             self.poolId = []
@@ -537,4 +537,8 @@ class NodeHealthMonitorTask(Task):
            for sub_task_name in self.task_result.result_json[doc_key]:
                res = TaskResult.generate_json_result(self.task_result.subtasks[doc_key][sub_task_name])
                self.task_result.result_json[doc_key][sub_task_name] = res
+
+        if self.store_results:
+            self.add_task_result_to_db()
+
         return self.task_result.result_json

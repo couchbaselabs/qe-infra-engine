@@ -1,7 +1,6 @@
 import concurrent.futures
 import logging
 from tasks.task import Task
-from tasks.task_result import TaskResult
 
 class TaskManager:
     def __init__(self, max_workers) -> None:
@@ -32,7 +31,7 @@ class TaskManager:
             self.subtasks[task_id][1].set_exception(e)
 
         task_result = self.running_tasks[task_id][1].task_result
-        TaskResult.generate_json_result(task_result)
+        self.running_tasks[task_id][1].generate_json_result()
         self.running_tasks.pop(task_id, None)
         return task_result
 

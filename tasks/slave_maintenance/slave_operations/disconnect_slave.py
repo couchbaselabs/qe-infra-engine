@@ -78,7 +78,7 @@ class DisconnectSlavesTask(Task):
         task_name = DisconnectSlavesTask.__name__
         if max_workers is None:
             max_workers = 100
-        super().__init__(task_name, max_workers)
+        super().__init__(task_name, max_workers, store_results=True)
 
         if "data" not in params or params["data"] is None:
             exception = ValueError(f"Data is not present to add to slave-pool")
