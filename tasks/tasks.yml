@@ -199,4 +199,13 @@ get_json_task:
         - --results_dir
       type: str
       help: "The results directory to which the json files need to be stored"
+remove_nodes_task:
+  path : tasks/node_maintenance/node_operations/remove_nodes.py
+  class : RemoveNodesTask
+  params :
+    data:
+      flags:
+        - --data
+      type: json.loads
+      help: "The data of nodes to be removed to the server-pool. The data is expected to be a json string. The json should comprise of a list of dictionary of nodes"
   
